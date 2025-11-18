@@ -69,7 +69,44 @@ public class OrderService {
 		return new OrderResponse(order.getOrderId(), serverCalculatedAmount);
 	}
 	
-	public void verifyPayment(String paymentId, Long orderId) {
+	/**
+     * [3. 확정] 결제 검증, DB 기록, 상태 업데이트, 재고 차감을 단일 트랜잭션으로 처리합니다.
+     * 이 메서드는 Controller의 /completePayment 엔드포인트에서 호출되어야 합니다.
+     * * @param paymentId PG사에서 발급된 결제 ID
+     * @param orderId 사전에 저장된 주문 ID
+     */
+    public void completeOrderTransaction(String paymentId, Long orderId) {
+        
+        // 1. PG 검증 및 PG 데이터 조회 (3-1)
+        // verifyPayment는 PG 통신 및 금액/상태 검증을 수행하고, 성공 시 JsonNode를 반환합니다.
+        JsonNode paymentData = this.verifyPayment(paymentId, orderId);
+        
+        // PG 응답에서 최종 금액 추출
+        int totalAmount = paymentData.at("/amount/total").asInt();
+        
+        // 2. 결제 기록 (3-2) - payments 테이블에 기록
+        // 💡 Mock Code: 실제로는 paymentService.recordPaymentSuccess(orderId, paymentId, totalAmount, "PAID"); 와 같이 호출되어야 합니다.
+        System.out.println("[3-2] 결제 기록: PaymentService를 통해 payments 테이블에 기록 (ID: " + paymentId + ")");
+
+        // 3. 주문 상태 업데이트 (3-3) - orders 테이블 상태 변경
+        // 💡 Mock Code: 실제로는 orderMapper.updateOrderStatus(orderId, "PAID", "PAYMENT_READY"); 와 같이 호출되어야 합니다.
+        System.out.println("[3-3] 주문 상태 업데이트: OrderMapper를 통해 orders 상태를 PAID로 변경");
+        
+        // 4. 재고 차감 (3-4) - products 테이블 재고 감소
+        // ⚠️ Mock Code: 실제로는 orderMapper.selectOrderDetails(orderId) 등으로 주문 항목을 가져와 productMapper.decreaseStock(productId, quantity)를 호출해야 합니다.
+        System.out.println("[3-4] 재고 차감: ProductMapper를 통해 상품 재고 차감");
+
+        // 트랜잭션이 성공적으로 커밋될 준비 완료
+        System.out.println("✅ 트랜잭션 성공: 주문 ID " + orderId + "의 결제 확정 및 후속 작업 완료.");
+    }
+	
+	/**
+     * [3. 확정] 결제 검증, DB 기록, 상태 업데이트, 재고 차감을 단일 트랜잭션으로 처리합니다.
+     * 이 메서드는 Controller의 /completePayment 엔드포인트에서 호출되어야 합니다.
+     * * @param paymentId PG사에서 발급된 결제 ID
+     * @param orderId 사전에 저장된 주문 ID
+     */
+	public JsonNode verifyPayment(String paymentId, Long orderId) {
         RestTemplate restTemplate = new RestTemplate();
         
         try {
@@ -113,7 +150,9 @@ public class OrderService {
 
             // 8. 검증 완료 (후속 작업 진행 준비)
             System.out.println("결제 검증 성공 및 금액 일치 확인: " + paymentId);
-
+            
+            return paymentData;
+            
         } catch (HttpClientErrorException e) {
             // PG사 API 호출 중 4xx (Bad Request, Unauthorized) 또는 5xx (Server Error) 발생
             throw new RuntimeException("PG사 통신 오류: " + e.getResponseBodyAsString(), e);
