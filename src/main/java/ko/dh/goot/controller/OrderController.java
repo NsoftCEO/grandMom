@@ -2,8 +2,6 @@ package ko.dh.goot.controller;
 
 
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
@@ -23,7 +21,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.json.JsonWriteFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,6 +31,7 @@ import ko.dh.goot.dto.OrderResponse;
 import ko.dh.goot.dto.Product;
 import ko.dh.goot.service.OrderService;
 import ko.dh.goot.service.ProductService;
+import ko.dh.goot.service.WebhookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 @Log4j2
@@ -53,6 +51,7 @@ public class OrderController {
 	
 	private final ProductService productService;
 	private final OrderService orderService;
+	private final WebhookService webhookService;
 	//private final PaymentService paymentService;
 
 	 // 주문 페이지로 이동
@@ -213,56 +212,13 @@ public class OrderController {
     
     @PostMapping("/completePayment")
     public ResponseEntity<?> handlePaymentWebhook(
-            @RequestBody Map<String, Object> payload, // Map으로 받아서 Canonical JSON을 직접 생성
-            @RequestHeader(value = "webhook-signature") String webhookSignature,
-            @RequestHeader(value = "webhook-timestamp") String webhookTimestamp) {
-        
-        try {
-            // -----------------------------------------------------------
-            // 1. 웹훅 시그니처 검증 (보안 필수) - Canonical JSON V2 표준 적용
-            // -----------------------------------------------------------
-            if (!verifyWebhookSignature(payload, webhookSignature, webhookTimestamp)) {
-                log.error("🚨 [Webhook] 시그니처 검증 실패. 위조 요청 가능성.");
-                return ResponseEntity.status(403).body(Map.of("message", "Invalid Webhook Signature. Access Denied."));
-            }
-            
-            log.info("✅ [Webhook] 시그니처 검증 성공. 주문 확정 트랜잭션 시작.");
-            
-            // -----------------------------------------------------------
-            // 2. 검증 후 이벤트 처리 (예시)
-            // -----------------------------------------------------------
-            String eventType = (String) payload.get("type");
-            Map<String, Object> data = (Map<String, Object>) payload.get("data");
-
-            if (data == null) {
-                log.error("[Webhook] Payload 'data' field is missing or null.");
-                return ResponseEntity.badRequest().body(Map.of("message", "Invalid webhook payload structure."));
-            }
-
-            switch (eventType) {
-                case "Transaction.Paid":
-                    String paymentId = (String) data.get("paymentId");
-                    log.info("[Webhook] 결제 완료 이벤트 수신. Payment ID: {}", paymentId);
-                    // TODO: paymentId를 이용해 DB에서 주문 상태를 업데이트하고 후속 작업을 진행합니다.
-                    break;
-                case "Transaction.Cancelled":
-                    log.warn("[Webhook] 결제 취소 이벤트 수신.");
-                    // TODO: 취소 로직 처리
-                    break;
-                // 기타 V2 이벤트 타입 처리 (Transaction.Ready, BillingKey.Issued 등)
-                default:
-                    log.warn("[Webhook] 알 수 없는 이벤트 타입 또는 무시할 이벤트 타입: {}", eventType);
-                    break;
-            }
-            
-            return ResponseEntity.ok(Map.of("message", "PG사 웹훅 처리 성공 및 주문 완료"));
-
-        } catch (Exception e) {
-            log.error("🚨 [Webhook] 결제 완료 처리 중 서버 오류 발생: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of(
-                "message", "웹훅 처리 중 서버 오류가 발생했습니다. PG사가 재시도할 것입니다."
-            ));
-        }
+    		@RequestBody String payload,
+            @RequestHeader("webhook-id") String webhookId,
+            @RequestHeader("webhook-signature") String webhookSignature,
+            @RequestHeader("webhook-timestamp") String webhookTimestamp){
+    	
+    	webhookService.verifyWebhook(payload, webhookId, webhookSignature, webhookTimestamp);
+		return null;
     }
     
     /**
@@ -270,7 +226,7 @@ public class OrderController {
      * Standard Webhooks V2의 Canonical JSON 생성 방식을 따르며, 
      * 안전한 검증을 위해 로컬 ObjectMapper를 사용하도록 개선했습니다.
      */
-    private boolean verifyWebhookSignature(
+   /* private boolean verifyWebhookSignature(
             Map<String, Object> payload,
             String webhookSignature,
             String webhookTimestamp
@@ -372,7 +328,7 @@ public class OrderController {
             log.error("[Webhook] Error verifying signature: {}", e.getMessage());
             return false;
         }
-    }
+    }*/
     
     /**
      * [보안 필수 메서드] PG사 웹훅 시그니처를 검증합니다.
