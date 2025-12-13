@@ -40,7 +40,7 @@ public class OrderService {
 		Product product = productMapper.selectProductById(orderRequest.getProductId());
         
         if (product == null) {
-            throw new IllegalArgumentException("상품 정보가 존재하지 않습니다.");
+            throw new IllegalArgumentException("상품 정보가 존재하지 않습니다."); // todo :: Validation 패키지 새로 만들기
         }
         if (product.getStock() < orderRequest.getQuantity()) {
             throw new IllegalStateException("재고가 부족합니다. 현재 재고: " + product.getStock());

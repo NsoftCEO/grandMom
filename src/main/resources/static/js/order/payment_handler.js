@@ -1,9 +1,4 @@
-/**
- * PortOne (구 아임포트)를 사용한 클라이언트 측 결제 처리 로직입니다.
- * 웹훅(Webhook) 방식으로 최종 검증을 서버에서 처리합니다.
- */
 
-// 💡 1. HTML 데이터 속성에서 가져온 전역 설정 값 (document.body에 data-store-id, data-kakao-key 설정 필요)
 const PORTONE_STORE_ID = document.body.dataset.storeId;
 const KAKAO_CHANNEL_KEY = document.body.dataset.kakaoKey;
 
@@ -170,33 +165,4 @@ async function requestPortOnePayment(orderId, totalAmount) {
     
     console.log("PortOne requestPayment 응답:", response);
     return response;
-}
-
-
-/**
- * 3단계: 결제 성공 후, 서버에 최종 검증을 요청합니다.
- * ⚠️ 웹훅(Webhook) 방식을 사용하기 위해 이 함수는 더 이상 호출되지 않으며,
- * 결제 검증 및 처리는 OrderController의 웹훅 엔드포인트(handlePaymentWebhook)에서 담당합니다.
- */
-async function verifyPayment(paymentId, orderId) {
-    // 이 함수는 웹훅 사용 시 호출되지 않으므로, 호출되면 경고 로그를 남깁니다.
-    console.warn("verifyPayment 함수는 웹훅 사용을 위해 비활성화되었습니다. 서버에서 직접 처리됩니다.");
-    return;
-    
-    /*
-    const response = await fetch("order/completePayment", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            paymentId: paymentId, 
-            orderId: orderId 
-        }),
-    });
-
-    if (!response.ok) {
-        const error = await response.json();
-        // 💡 실무 보완: 결제 금액 불일치 등 심각한 오류는 구체적으로 알림
-        throw new Error("결제 검증 실패: " + (error.message || "서버 검증 중 오류 발생. 환불 처리되었을 수 있습니다."));
-    }
-    */
 }

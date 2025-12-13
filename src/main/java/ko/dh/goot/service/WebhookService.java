@@ -30,8 +30,9 @@ public class WebhookService {
     
     public boolean verifyWebhook(String payload, String webhookId, String webhookSignature, String webhookTimestamp) {
     	System.out.println("ㅁㅁㅁㅁㅁ ㅁㅁ");
-    	try{
-    		this.verifyTimestamp(webhookTimestamp);
+    	try{   		
+    		boolean verifyTimestamp = this.verifyTimestamp(webhookTimestamp);
+    		
     		String selfSigniture = this.selfSigniture(webhookId, webhookTimestamp, payload);
     		
     		if(webhookSignature.equals(selfSigniture)) {
