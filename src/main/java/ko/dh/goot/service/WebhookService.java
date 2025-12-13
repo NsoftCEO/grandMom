@@ -39,12 +39,12 @@ public class WebhookService {
     			System.out.println("시그니처 같음");
     			System.out.println(webhookSignature);
     			System.out.println(selfSigniture);
-    			return false;
-    		}else {
-    			System.out.println("시그니처 다름");
+    			return true;
     		}
-    		
-    		return true;
+			System.out.println("시그니처 다름");
+			return false;
+
+
     	}catch (Exception e) {
     		return false;
 		}

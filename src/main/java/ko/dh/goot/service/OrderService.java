@@ -31,32 +31,38 @@ public class OrderService {
 	@Value("${portone.api-secret}")
     private String apiSecret;
 	
+	@Value("${portone.store-id}")
+    private String storeId;
+
+    @Value("${portone.channel-key}")
+    private String channelKey;
+	
 	private final ProductMapper productMapper;
 	
 	private final OrderMapper orderMapper;
 
-	public OrderResponse prepareOrder(OrderRequest orderRequest, String currentUserId) {
+	public OrderResponse prepareOrder(OrderRequest req, String userId) {
 
-		Product product = productMapper.selectProductById(orderRequest.getProductId());
+		Product product = productMapper.selectProductById(req.getProductId());
         
         if (product == null) {
             throw new IllegalArgumentException("상품 정보가 존재하지 않습니다."); // todo :: Validation 패키지 새로 만들기
         }
-        if (product.getStock() < orderRequest.getQuantity()) {
+        if (product.getStock() < req.getQuantity()) {
             throw new IllegalStateException("재고가 부족합니다. 현재 재고: " + product.getStock());
         }
         
-        int serverCalculatedAmount = product.getPrice() * orderRequest.getQuantity();
+        int serverCalculatedAmount = product.getPrice() * req.getQuantity();
         
         Order order = Order.builder()
-                .userId(currentUserId)
-                .orderName(orderRequest.getOrderName())
+                .userId(userId)
+                .orderName(req.getOrderName())
                 .totalAmount(serverCalculatedAmount)
                 .orderStatus("PAYMENT_READY")
-                .receiverName(orderRequest.getReceiver())
-                .receiverPhone(orderRequest.getPhone())
-                .receiverAddress(orderRequest.getAddress())
-                .deliveryMemo(orderRequest.getMemo())
+                .receiverName(req.getReceiver())
+                .receiverPhone(req.getPhone())
+                .receiverAddress(req.getAddress())
+                .deliveryMemo(req.getMemo())
                 .build();
         
         int rowCount = orderMapper.insertOrder(order);
@@ -68,6 +74,34 @@ public class OrderService {
         
 		return new OrderResponse(order.getOrderId(), serverCalculatedAmount);
 	}
+	
+	/* ===============================
+     * 결제 파라미터 생성
+     * =============================== */
+    public Map<String, Object> createPaymentParams(Long orderId) {
+
+        Order order = orderMapper.selectOrder(orderId);
+
+        if (order == null) {
+            throw new IllegalArgumentException("주문 없음");
+        }
+
+        if (!"PAYMENT_READY".equals(order.getOrderStatus())) {
+            throw new IllegalStateException("이미 처리된 주문");
+        }
+
+        return Map.of(
+            "storeId", storeId,
+            "channelKey", channelKey,
+            "paymentId", "payment-" + java.util.UUID.randomUUID(),
+            "orderName", order.getOrderName(),
+            "totalAmount", order.getTotalAmount(),
+            "currency", "KRW",
+            "payMethod", "EASY_PAY",
+            "isTestChannel", true,
+            "customData", Map.of("orderId", orderId)
+        );
+    }
 	
 	/**
      * [3. 확정] 결제 검증, DB 기록, 상태 업데이트, 재고 차감을 단일 트랜잭션으로 처리합니다.
@@ -164,5 +198,6 @@ public class OrderService {
             throw new RuntimeException("결제 검증 중 예상치 못한 오류 발생: " + e.getMessage(), e);
         }
     }
+
 
 }

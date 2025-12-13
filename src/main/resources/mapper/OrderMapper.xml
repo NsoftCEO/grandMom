@@ -15,6 +15,23 @@
         <result property="updatedAt" column="updated_at"/>
 </resultMap>
 	
+	<select id="selectOrder" parameterType="long" resultMap="orderResultMap">
+        SELECT
+            order_id,
+            user_id,
+            order_name,
+            total_amount,
+            order_status,
+            receiver_name,
+            receiver_phone,
+            receiver_address,
+            delivery_memo,
+            created_at,
+            updated_at
+        FROM orders
+        WHERE order_id = #{orderId}
+    </select>
+    
 	<insert id="insertOrder" useGeneratedKeys="true" keyProperty="orderId">      
 	 	INSERT INTO orders (
 	        user_id, 

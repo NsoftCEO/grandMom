@@ -73,16 +73,14 @@ public class OrderController {
 
     @PostMapping("/prepareOrder")
     public ResponseEntity<Map<String, Object>> prepareOrder(@RequestBody OrderRequest orderRequest) {
-        String currentUserId = "user-1234"; // 임시 사용자 ID
+        String userId = "user-1234"; // 임시 사용자 ID
 
         try {           
-        	OrderResponse response = orderService.prepareOrder(orderRequest, currentUserId); // 💡 Service 호출: 금액 재계산, DB 저장, orderId 반환
+        	OrderResponse response = orderService.prepareOrder(orderRequest, userId); // 💡 Service 호출: 금액 재계산, DB 저장, orderId 반환
 
-            // 클라이언트에게 orderId와 서버 확정 금액을 반환
-            return ResponseEntity.ok(Map.of(
-                "orderId", response.getOrderId(),
-                "expectedAmount", response.getExpectedAmount() 
-            ));
+        	return ResponseEntity.ok(
+                    Map.of("orderId", response.getOrderId())
+                );
         } catch (IllegalArgumentException | IllegalStateException e) {
             // 재고 부족, 상품 없음 등의 비즈니스 로직 에러
             return ResponseEntity.badRequest().body(Map.of(
@@ -96,7 +94,19 @@ public class OrderController {
         }
     }
     
- 
+    /* ===============================
+     * 2️. 결제 파라미터 생성
+     * =============================== */
+    @PostMapping("/payment/request")
+    public ResponseEntity<?> requestPayment(@RequestBody Map<String, Long> body) {
+        Long orderId = body.get("orderId");
+
+        Map<String, Object> paymentParams =
+                orderService.createPaymentParams(orderId);
+
+        return ResponseEntity.ok(paymentParams);
+    }
+
     @PostMapping("/completePayment")
     public ResponseEntity<?> handlePaymentWebhook(
     		@RequestBody String payload,
