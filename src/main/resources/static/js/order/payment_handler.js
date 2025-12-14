@@ -68,7 +68,7 @@ async function handlePayment() {
         }
 
         displayPaymentMessage("결제 승인 완료. 처리 중입니다.");
-        window.location.href = `ordercomplete?orderId=${serverOrderId}`;
+       // window.location.href = `ordercomplete?orderId=${serverOrderId}`;
 
     } catch (error) {
         console.error(error);
@@ -111,7 +111,7 @@ async function prepareOrder() {
  * 👉 totalAmount 포함 (서버 결정)
  */
 async function requestPaymentParams(orderId) {
-    const res = await fetch("/order/payment/request", {
+    const res = await fetch("/order/createPaymentParams", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId })

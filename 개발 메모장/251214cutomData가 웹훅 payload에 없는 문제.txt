@@ -1,0 +1,12 @@
+현재 문제점
+웹훅으로 받은 payload에 customData가 없어서 orderId가 없음.
+따라서 orderId로 주문을 조회를 못함. 
+
+
+
+생각나는 해결책
+1. createPaymentParams에서 orders테이블에 (paymentId컬럼추가하고) 데이터 저장
+
+
+현재 한것
+포트원 고객센터에 카톡남겨둠 (운영시간 평일이긴함)

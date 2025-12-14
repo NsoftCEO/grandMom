@@ -81,7 +81,8 @@ public class OrderService {
     public Map<String, Object> createPaymentParams(Long orderId) {
 
         Order order = orderMapper.selectOrder(orderId);
-
+        System.out.println("orderId::");
+        System.out.println(orderId);
         if (order == null) {
             throw new IllegalArgumentException("주문 없음");
         }
@@ -90,6 +91,8 @@ public class OrderService {
             throw new IllegalStateException("이미 처리된 주문");
         }
 
+        String orderIdStr = String.valueOf(orderId);
+        
         return Map.of(
             "storeId", storeId,
             "channelKey", channelKey,
@@ -99,7 +102,7 @@ public class OrderService {
             "currency", "KRW",
             "payMethod", "EASY_PAY",
             "isTestChannel", true,
-            "customData", Map.of("orderId", orderId)
+            "customData", Map.of("orderId", orderIdStr)
         );
     }
 	

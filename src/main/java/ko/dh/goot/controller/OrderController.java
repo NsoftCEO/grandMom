@@ -31,6 +31,7 @@ import ko.dh.goot.dto.OrderRequest;
 import ko.dh.goot.dto.OrderResponse;
 import ko.dh.goot.dto.Product;
 import ko.dh.goot.service.OrderService;
+import ko.dh.goot.service.PortoneApiService;
 import ko.dh.goot.service.ProductService;
 import ko.dh.goot.service.WebhookService;
 import lombok.RequiredArgsConstructor;
@@ -53,8 +54,10 @@ public class OrderController {
 	private final ProductService productService;
 	private final OrderService orderService;
 	private final WebhookService webhookService;
-	//private final PaymentService paymentService;
+	private final PortoneApiService portoneApiService;
 
+	private final ObjectMapper objectMapper;
+	
 	 // 주문 페이지로 이동
     @GetMapping("/detail")
     public String orderPage(@RequestParam("productId") int productId,
@@ -97,12 +100,11 @@ public class OrderController {
     /* ===============================
      * 2️. 결제 파라미터 생성
      * =============================== */
-    @PostMapping("/payment/request")
+    @PostMapping("/createPaymentParams")
     public ResponseEntity<?> requestPayment(@RequestBody Map<String, Long> body) {
         Long orderId = body.get("orderId");
 
-        Map<String, Object> paymentParams =
-                orderService.createPaymentParams(orderId);
+        Map<String, Object> paymentParams = orderService.createPaymentParams(orderId);
 
         return ResponseEntity.ok(paymentParams);
     }
@@ -116,6 +118,9 @@ public class OrderController {
     	
     	boolean verifyWebhook = webhookService.verifyWebhook(payload, webhookId, webhookSignature, webhookTimestamp);
 		
+    	System.out.println("payload::");
+    	System.out.println(payload);
+    	
     	if(!verifyWebhook) {
     		log.error("🚨 [Webhook] 시그니처 검증 실패. 위조 요청 가능성. payload={}", payload);
             // 403 Forbidden 대신 200 OK를 반환하여 PG사가 재시도를 멈추게 하는 경우도 있지만, 
@@ -123,7 +128,95 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid Webhook Signature.");
     	}
     	
-    	return null;
+    	Map<String, Object> parsedPayload;
+        try {
+            parsedPayload = objectMapper.readValue(payload, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+        } catch (JsonProcessingException e) {
+            log.error("🚨 [Webhook] JSON 파싱 실패. payload={}", payload, e);
+            return ResponseEntity.badRequest().body(Map.of("message", "Invalid JSON payload."));
+        }
+    	
+        try {
+            // -----------------------------------------------------------
+            // 💡 dataMap 변수 선언 및 초기화 (parsedPayload 사용)
+            // -----------------------------------------------------------
+            
+            @SuppressWarnings("unchecked")
+            Map<String, Object> dataMap = (Map<String, Object>) parsedPayload.get("data"); 
+
+            // V2 'data' 필드가 없으면, V1/최상위 구조로 폴백
+            if (dataMap == null) {
+                dataMap = parsedPayload; 
+                System.out.println("⚠️ V2 'data' 필드 누락. V1/최상위 구조로 폴백하여 데이터 추출 시도.");
+            }
+            
+            // 1. paymentId 추출 시도 (가장 중요한 값)
+            String paymentId = (String) dataMap.get("paymentId"); 
+            if (paymentId == null) {
+                paymentId = (String) dataMap.get("id"); // 폴백 ID
+            }
+            
+            // 2. 필수 데이터 (paymentId) 확인
+            if (paymentId == null) { 
+                log.error("필수 데이터 (paymentId) 추출 실패.");
+                return ResponseEntity.badRequest().body(Map.of("message", "필수 데이터 (paymentId) 누락."));
+            }
+            
+            // -----------------------------------------------------------
+            // 3. merchantUid (orderId) 확보 및 API 조회 로직
+            // -----------------------------------------------------------
+            String merchantUidStr = (String) dataMap.get("merchant_uid"); 
+            Long orderId = null;
+
+            if (merchantUidStr == null || merchantUidStr.isEmpty()) {
+                System.out.println("⚠️ merchant_uid가 웹훅에 누락됨. PortOne API로 조회하여 orderId 확보 시도.");
+                
+                System.out.println("결제 상세요청을 위한 paymentId ::");
+                System.out.println(paymentId);
+                // 🚨 여기서 paymentId를 사용하여 API 서비스 호출
+                Map<String, Object> apiDetails = portoneApiService.fetchPaymentDetails(paymentId);
+                
+                System.out.println("apiDetails::::::");
+                System.out.println(apiDetails);
+                
+                // API 응답에서 merchantUid 추출
+                merchantUidStr = (String) apiDetails.get("merchantUid");
+                
+                if (merchantUidStr == null) {
+                    throw new IllegalStateException("PortOne API 조회에서도 merchantUid(orderId) 확보 실패.");
+                }
+            }
+            
+            // merchantUidStr (API에서 가져왔거나 웹훅에서 가져왔거나)를 Long으로 변환
+            try {
+                orderId = Long.valueOf(merchantUidStr);
+                System.out.println("✅ 최종 확보된 주문 ID (orderId): " + orderId);
+            } catch (NumberFormatException e) {
+                 throw new IllegalArgumentException("merchantUid 값이 유효한 숫자 형식이 아닙니다: " + merchantUidStr);
+            }
+            
+            System.out.println("✅ 웹훅 시그니처 검증 및 API 데이터 확보 통과. 결제 확정 트랜잭션 시작.");
+            // ((OrderService)orderService).completeOrderTransaction(paymentId, orderId); // 실제 호출
+
+            // 4. 웹훅 응답: 200 OK를 반환합니다.
+            return ResponseEntity.ok(Map.of("message", "PG사 웹훅 처리 성공 및 주문 완료"));
+
+        } catch (IllegalArgumentException e) {
+            log.error("웹훅 데이터 형식 오류: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", "웹훅 데이터 형식 오류: " + e.getMessage()));
+        } catch (IllegalStateException e) {
+            log.error("결제 검증/확정 비즈니스 오류 (웹훅): {}", e.getMessage());
+            return ResponseEntity.ok(Map.of("message", "비즈니스 로직 오류로 처리 실패: " + e.getMessage()));
+        } catch (Exception e) {
+            log.error("결제 완료 처리 중 서버 오류 발생 (웹훅): {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "message", "웹훅 처리 중 서버 오류가 발생했습니다. PG사가 재시도할 것입니다."
+            ));
+        }
+    	
+    	//orderService.completeOrderTransaction();
+    	
+    	
     }
     
  
