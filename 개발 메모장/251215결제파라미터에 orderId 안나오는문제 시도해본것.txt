@@ -1,0 +1,3 @@
+시도해본것:
+1. 결제파리미터에 merchantUid  추가 -> payload 추가안됨
+2. customData를 String으로 넘김 -> payload 추가안됨
