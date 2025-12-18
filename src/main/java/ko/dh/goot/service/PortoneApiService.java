@@ -20,10 +20,9 @@ public class PortoneApiService {
     // 이 값이 PortOne 공식 문서의 'MY_API_SECRET'에 해당합니다.
     @Value("${portone.api-secret}")
     private String apiSecret;
-
+    
     // PortOne API 기본 URL
-    private final String BASE_URL = "https://api.portone.io";
-    private final String TEST_BASE_URL = "https://api-sandbox.portone.io";
+    private final String BASE_URL = "https://api.portone.io/payments/";
     
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -56,7 +55,7 @@ public class PortoneApiService {
         
         try {
             // 3. PortOne 결제 상세 조회 API 호출 (V2 엔드포인트: /api/v2/payments/{payment_id})
-            String paymentUrl = TEST_BASE_URL + "/api/v2/payments/" + paymentId;
+            String paymentUrl = BASE_URL + paymentId;
             
             // API 호출 및 응답 처리
             ResponseEntity<Map> response = restTemplate.exchange(
@@ -72,19 +71,11 @@ public class PortoneApiService {
             // 4. 응답 검증 및 데이터 추출
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();
-                
-                // V2 응답 구조: data 필드 내부에 결제 상세 정보가 있을 가능성 높음
-                Map<String, Object> paymentData = (Map<String, Object>) responseBody.get("data");
-                
-                if (paymentData == null) {
-                    // 응답 코드가 성공(2xx)이지만 data 필드가 없는 경우 (예외 처리)
-                    throw new RuntimeException("PortOne API 결제 상세 조회 실패: 응답에서 결제 데이터(data)를 찾을 수 없습니다.");
-                }
 
                 // 필수 데이터 추출: merchant_uid, amount, status
-                String merchantUid = (String) paymentData.get("merchant_uid");
-                Long amount = ((Number) paymentData.get("amount")).longValue(); 
-                String status = (String) paymentData.get("status");
+                String merchantUid = (String) responseBody.get("merchant_uid");
+                Long amount = ((Number) responseBody.get("amount")).longValue(); 
+                String status = (String) responseBody.get("status");
 
                 if (merchantUid == null || amount == null || status == null) {
                     throw new IllegalStateException("PortOne API 응답에서 필수 데이터 (merchant_uid, amount, status)가 누락되었습니다.");

@@ -196,8 +196,9 @@ public class OrderController {
             }
             
             System.out.println("✅ 웹훅 시그니처 검증 및 API 데이터 확보 통과. 결제 확정 트랜잭션 시작.");
-            // ((OrderService)orderService).completeOrderTransaction(paymentId, orderId); // 실제 호출
-
+           
+            orderService.completeOrderTransaction(paymentId, orderId);
+            
             // 4. 웹훅 응답: 200 OK를 반환합니다.
             return ResponseEntity.ok(Map.of("message", "PG사 웹훅 처리 성공 및 주문 완료"));
 
@@ -214,7 +215,7 @@ public class OrderController {
             ));
         }
     	
-    	//orderService.completeOrderTransaction();
+    	
     	
     	
     }
