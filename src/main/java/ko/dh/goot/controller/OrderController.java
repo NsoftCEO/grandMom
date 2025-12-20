@@ -161,38 +161,22 @@ public class OrderController {
                 log.error("필수 데이터 (paymentId) 추출 실패.");
                 return ResponseEntity.badRequest().body(Map.of("message", "필수 데이터 (paymentId) 누락."));
             }
+       
+            System.out.println("결제 상세요청을 위한 paymentId ::");
+            System.out.println(paymentId);
+            // 🚨 여기서 paymentId를 사용하여 API 서비스 호출
+            Map<String, Object> apiDetails = portoneApiService.portonePaymentDetails(paymentId);
             
-            // -----------------------------------------------------------
-            // 3. merchantUid (orderId) 확보 및 API 조회 로직
-            // -----------------------------------------------------------
-            String merchantUidStr = (String) dataMap.get("merchant_uid"); 
-            Long orderId = null;
+            System.out.println("apiDetails::::::");
+            System.out.println(apiDetails);
 
-            if (merchantUidStr == null || merchantUidStr.isEmpty()) {
-                System.out.println("⚠️ merchant_uid가 웹훅에 누락됨. PortOne API로 조회하여 orderId 확보 시도.");
-                
-                System.out.println("결제 상세요청을 위한 paymentId ::");
-                System.out.println(paymentId);
-                // 🚨 여기서 paymentId를 사용하여 API 서비스 호출
-                Map<String, Object> apiDetails = portoneApiService.fetchPaymentDetails(paymentId);
-                
-                System.out.println("apiDetails::::::");
-                System.out.println(apiDetails);
-                
-                // API 응답에서 merchantUid 추출
-                merchantUidStr = (String) apiDetails.get("merchantUid");
-                
-                if (merchantUidStr == null) {
-                    throw new IllegalStateException("PortOne API 조회에서도 merchantUid(orderId) 확보 실패.");
-                }
-            }
-            
-            // merchantUidStr (API에서 가져왔거나 웹훅에서 가져왔거나)를 Long으로 변환
+            Long orderId = (Long) apiDetails.get("orderId");
+
             try {
-                orderId = Long.valueOf(merchantUidStr);
+                
                 System.out.println("✅ 최종 확보된 주문 ID (orderId): " + orderId);
             } catch (NumberFormatException e) {
-                 throw new IllegalArgumentException("merchantUid 값이 유효한 숫자 형식이 아닙니다: " + merchantUidStr);
+                 throw new IllegalArgumentException("orderId 값이 유효한 숫자 형식이 아닙니다: " + orderId);
             }
             
             System.out.println("✅ 웹훅 시그니처 검증 및 API 데이터 확보 통과. 결제 확정 트랜잭션 시작.");

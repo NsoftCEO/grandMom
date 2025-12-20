@@ -22,7 +22,8 @@ public class PortoneApiService {
     private String apiSecret;
     
     // PortOne API 기본 URL
-    private final String BASE_URL = "https://api.portone.io/payments/";
+    @Value("${pay-detail-url}")
+    private String payDetailURL;
     
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -40,7 +41,7 @@ public class PortoneApiService {
      * @return PortOne API 응답에서 핵심 정보를 추출한 Map (merchantUid, totalAmount, status 등)
      */
     @SuppressWarnings("unchecked")
-    public Map<String, Object> fetchPaymentDetails(String paymentId) {
+    public Map<String, Object> portonePaymentDetails(String paymentId) {
         // 1. HTTP 헤더 설정 (Authorization Secret 직접 사용)
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -54,8 +55,8 @@ public class PortoneApiService {
         HttpEntity<String> entity = new HttpEntity<>(headers);
         
         try {
-            // 3. PortOne 결제 상세 조회 API 호출 (V2 엔드포인트: /api/v2/payments/{payment_id})
-            String paymentUrl = BASE_URL + paymentId;
+            // 3. PortOne 결제 상세 조회 API 호출 (V2 엔드포인트: https://api.portone.io/payments/{payment_id})
+            String paymentUrl = payDetailURL + paymentId;
             
             // API 호출 및 응답 처리
             ResponseEntity<Map> response = restTemplate.exchange(
