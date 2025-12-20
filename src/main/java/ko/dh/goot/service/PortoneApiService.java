@@ -4,7 +4,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.http.*;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.extern.log4j.Log4j2;
+
 import java.util.Map;
 import java.util.HashMap;
 
@@ -13,6 +18,7 @@ import java.util.HashMap;
  * V2 공식 문서를 기반으로, API Secret을 'Authorization: PortOne <SECRET>' 형식으로 
  * 직접 사용하여 결제 정보를 조회합니다. (별도의 access-token 발급 단계 불필요)
  */
+@Log4j2
 @Service
 public class PortoneApiService {
 
@@ -22,7 +28,7 @@ public class PortoneApiService {
     private String apiSecret;
     
     // PortOne API 기본 URL
-    @Value("${pay-detail-url}")
+    @Value("${portone.pay-detail-url}")
     private String payDetailURL;
     
     private final RestTemplate restTemplate;
@@ -42,52 +48,85 @@ public class PortoneApiService {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> portonePaymentDetails(String paymentId) {
-        // 1. HTTP 헤더 설정 (Authorization Secret 직접 사용)
+    	
+        String paymentUrl = payDetailURL + paymentId;
+        
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        
-        // 🚨 V2 공식 문서에 따른 인증 방식 적용
         headers.set(HttpHeaders.AUTHORIZATION, "PortOne " + apiSecret); 
-        
-        System.out.println("🚨 [PortoneApiService] PortOne API (V2 Secret) 결제 상세 조회 시작: PaymentId=" + paymentId);
-
-        // 2. HTTP 요청 엔티티 (GET 요청이므로 바디는 null)
         HttpEntity<String> entity = new HttpEntity<>(headers);
         
         try {
-            // 3. PortOne 결제 상세 조회 API 호출 (V2 엔드포인트: https://api.portone.io/payments/{payment_id})
-            String paymentUrl = payDetailURL + paymentId;
-            
-            // API 호출 및 응답 처리
             ResponseEntity<Map> response = restTemplate.exchange(
                 paymentUrl,
                 HttpMethod.GET,
                 entity,
                 Map.class
             );
-
-            System.out.println("포트원 response::");
-            System.out.println(response);
             
-            // 4. 응답 검증 및 데이터 추출
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();
-
-                // 필수 데이터 추출: merchant_uid, amount, status
-                String merchantUid = (String) responseBody.get("merchant_uid");
-                Long amount = ((Number) responseBody.get("amount")).longValue(); 
+                log.info("포트원 API 응답 전체: {}", responseBody);
+                
+                System.out.println("1111");         
+                Object amountObj = responseBody.get("amount");
+                Long totalAmount = 0L;
+                
+                if (amountObj instanceof Map) {
+                    // V2 방식: amount가 {total: 189000, ...} 형태의 Map인 경우
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> amountMap = (Map<String, Object>) amountObj;
+                    Object totalVal = amountMap.get("total");
+                    if (totalVal instanceof Number) {
+                        totalAmount = ((Number) totalVal).longValue();
+                    }
+                } else if (amountObj instanceof Number) {
+                    // V1 혹은 단순 숫자 방식 대응
+                    totalAmount = ((Number) amountObj).longValue();
+                }
+                
+                System.out.println("2222");
                 String status = (String) responseBody.get("status");
+                System.out.println("333");
+                Object customDataObj = responseBody.get("customData");
+                
+                Long orderId = null;
 
-                if (merchantUid == null || amount == null || status == null) {
-                    throw new IllegalStateException("PortOne API 응답에서 필수 데이터 (merchant_uid, amount, status)가 누락되었습니다.");
+                if (customDataObj != null) {
+                    try {
+                        Map<String, Object> customDataMap = null;
+                        
+                        if (customDataObj instanceof Map) {
+                            customDataMap = (Map<String, Object>) customDataObj;
+                        } else if (customDataObj instanceof String) {
+                            // JSON 문자열인 경우 파싱 시도
+                            String customDataStr = (String) customDataObj;
+                            if (!customDataStr.isEmpty() && customDataStr.startsWith("{")) {
+                                customDataMap = objectMapper.readValue(customDataStr, new TypeReference<Map<String, Object>>() {});
+                            }
+                        }
+
+                        if (customDataMap != null) {
+                            Object oId = customDataMap.get("orderId");
+                            if (oId != null) {
+                                // 문자열이든 숫자든 Long으로 변환
+                            	orderId = Long.valueOf(oId.toString());
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("⚠️ customData 파싱 중 오류 발생: {}", e.getMessage());
+                    }
+                }
+                
+                if (orderId == null || totalAmount == null || status == null) {
+                    throw new IllegalStateException("PortOne API 응답에서 필수 데이터 (orderId, amount, status)가 누락되었습니다.");
                 }
                 
                 Map<String, Object> details = new HashMap<>();
-                details.put("merchantUid", merchantUid);
-                details.put("totalAmount", amount);
+                details.put("totalAmount", totalAmount);
                 details.put("status", status); 
+                details.put("orderId", orderId); 
                 
-                System.out.println("✅ [PortoneApiService] API 조회 성공. 주문 ID (" + merchantUid + ") 확보 및 금액 검증 준비 완료.");
                 return details;
 
             } else {
