@@ -18,6 +18,7 @@ import ko.dh.goot.controller.OrderController;
 import ko.dh.goot.dao.OrderMapper;
 import ko.dh.goot.dao.PaymentMapper;
 import ko.dh.goot.dto.Payment;
+import ko.dh.goot.dto.PortOnePaymentResponse;
 import ko.dh.goot.dto.WebhookPayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -175,12 +176,17 @@ public class PaymentService {
         	
         	String paymentId = payloadData.getData().getPaymentId();
         	
-        	Map<String, Object> apiDetails = portoneApiService.portonePaymentDetails(paymentId);
+        	//Map<String, Object> apiDetails = portoneApiService.portonePaymentDetails(paymentId);
+        	
+        	PortOnePaymentResponse apiDetails = portoneApiService.portonePaymentDetails(paymentId);
+        	
+        	Long orderId = extractOrderId(apiDetails.getCustomData());
         	
         	System.out.println("apiDetails::::::");
             System.out.println(apiDetails);
 
-        	Long orderId = (Long) apiDetails.get("orderId");
+        	//Long orderId = (Long) apiDetails.get("orderId");
+            //Long orderId = 1L;
             System.out.println("✅ 최종 확보된 주문 ID (orderId): " + orderId);
 
             orderService.completeOrderTransaction(paymentId, orderId);
@@ -195,26 +201,27 @@ public class PaymentService {
         
 	}
 
+	private Long extractOrderId(String customData) {
 
-    public void handlePaymentWebhook(Map<String, Object> payload) {
-        try {
-            // 페이로드 구조는 문서 보면서 확인
-            String status = (String) payload.get("status");
-            String orderIdStr = (String) payload.get("orderId");
+	    if (customData == null || customData.isBlank()) {
+	        return null;
+	    }
 
-            if ("PAID".equalsIgnoreCase(status) && orderIdStr != null) {
-                Long orderId = Long.valueOf(orderIdStr);
-                Payment existing = paymentMapper.selectByOrderId(orderId);
-                if (existing != null) {
-                    existing.setPaymentStatus("PAID");
-                    existing.setApprovedAt(LocalDateTime.now());
-                    paymentMapper.updatePaymentStatus(existing);
-                }
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Webhook 처리 오류: " + e.getMessage(), e);
-        }
-    } 
+	    try {
+	        PortOnePaymentResponse.CustomData data =
+	            objectMapper.readValue(
+	                customData,
+	                PortOnePaymentResponse.CustomData.class
+	            );
+
+	        return data.getOrderId();
+
+	    } catch (Exception e) {
+	        throw new IllegalStateException(
+	            "customData 파싱 실패: " + customData, e
+	        );
+	    }
+	}
 
     
 }

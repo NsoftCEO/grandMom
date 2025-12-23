@@ -97,6 +97,7 @@ public class OrderController {
         return ResponseEntity.ok(paymentParams);
     }
 
+    /*
     @PostMapping("/completePayment")
     public ResponseEntity<?> handlePaymentWebhook(
     		@RequestBody String payload,
@@ -181,7 +182,7 @@ public class OrderController {
     	
     	
     	
-    }
+    }*/
     
  
 }
