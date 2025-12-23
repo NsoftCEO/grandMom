@@ -8,6 +8,7 @@ import org.springframework.http.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import ko.dh.goot.dto.PortOnePaymentResponse;
 import lombok.extern.log4j.Log4j2;
 
 import java.util.Map;
@@ -39,13 +40,71 @@ public class PortoneApiService {
         this.objectMapper = new ObjectMapper();
     }
     
+    public PortOnePaymentResponse portonePaymentDetails(String paymentId) {
+
+        String paymentUrl = payDetailURL + paymentId;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, "PortOne " + apiSecret);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<PortOnePaymentResponse> response =
+                restTemplate.exchange(
+                    paymentUrl,
+                    HttpMethod.GET,
+                    entity,
+                    PortOnePaymentResponse.class
+                );
+
+            PortOnePaymentResponse body = response.getBody();
+
+            if (!response.getStatusCode().is2xxSuccessful() || body == null) {
+                throw new IllegalStateException("PortOne API 응답 실패");
+            }
+
+            /* ===== 1. 상태 검증 ===== */
+            if (!"PAID".equals(body.getStatus())) {
+                throw new IllegalStateException(
+                    "결제 완료 상태 아님. status=" + body.getStatus()
+                );
+            }
+
+            /* ===== 2. 금액 검증 ===== */
+            PortOnePaymentResponse.Amount amount = body.getAmount();
+
+            if (amount == null || amount.getTotal() == null || amount.getPaid() == null) {
+                throw new IllegalStateException("amount 정보 누락");
+            }
+
+            if (!amount.getTotal().equals(amount.getPaid())) {
+                throw new IllegalStateException(
+                    "전액 결제 아님. total=" + amount.getTotal()
+                        + ", paid=" + amount.getPaid()
+                );
+            }
+
+            /* ===== 3. orderId 검증 ===== */
+			/*
+			 * if (body.getCustomData() == null || body.getCustomData().getOrderId() ==
+			 * null) { throw new IllegalStateException("customData.orderId 누락"); }
+			 */
+
+            return body;
+
+        } catch (Exception e) {
+            log.error("🚨 PortOne 결제 조회 실패. paymentId={}", paymentId, e);
+            throw new RuntimeException("PortOne 결제 조회 실패", e);
+        }
+    }
+
 
     /**
      * PortOne API를 통해 paymentId로 결제 상세 정보를 조회합니다. (V2 API 사용)
      * V2 인증 방식: Authorization: PortOne <API_SECRET>
      * @param paymentId 웹훅으로부터 수신한 PG사 결제 ID
      * @return PortOne API 응답에서 핵심 정보를 추출한 Map (merchantUid, totalAmount, status 등)
-     */
+     
     @SuppressWarnings("unchecked")
     public Map<String, Object> portonePaymentDetails(String paymentId) {
     	
@@ -137,5 +196,5 @@ public class PortoneApiService {
             System.err.println("🚨 PortOne API 결제 상세 조회 중 치명적인 오류 발생: " + e.getMessage());
             throw new RuntimeException("API 결제 상세 조회 실패: " + e.getMessage(), e);
         }
-    }
+    }*/
 }
