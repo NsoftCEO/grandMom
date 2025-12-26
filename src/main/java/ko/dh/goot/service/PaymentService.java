@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
@@ -17,6 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ko.dh.goot.controller.OrderController;
 import ko.dh.goot.dao.OrderMapper;
 import ko.dh.goot.dao.PaymentMapper;
+import ko.dh.goot.dto.Order;
 import ko.dh.goot.dto.Payment;
 import ko.dh.goot.dto.PortOnePaymentResponse;
 import ko.dh.goot.dto.WebhookPayload;
@@ -32,6 +34,7 @@ public class PaymentService {
 	private final WebhookService webhookService;
 	private final PortoneApiService portoneApiService;	
     private final PaymentMapper paymentMapper;
+    private final OrderMapper orderMapper;
     private final ObjectMapper objectMapper;
     
     
@@ -40,6 +43,8 @@ public class PaymentService {
 
     @Value("${portone.api-secret}")
     private String apiSecret;
+    
+    private static final String TRANSACTION_PAID = "Transaction.Paid";
 
     public String getAccessToken() {
         // 1. URL을 새로운 로그인/인증 경로로 변경
@@ -148,9 +153,7 @@ public class PaymentService {
 
 	public void handlePaymentWebhook(String payload, String webhookId, String webhookSignature, String webhookTimestamp) {
 		boolean verifyWebhook = webhookService.verifyWebhook(payload, webhookId, webhookSignature, webhookTimestamp);
-		
-		
-    	
+	
     	if(!verifyWebhook) {
     		log.error("🚨 [Webhook] 시그니처 검증 실패. 위조 요청 가능성. payload={}", payload); 
     		throw new IllegalArgumentException("Invalid Webhook Signature.");
@@ -162,7 +165,7 @@ public class PaymentService {
     		System.out.println("payloadData::");
         	System.out.println(payloadData);
         	       	
-        	if (!"Transaction.Paid".equals(payloadData.getType())) {
+        	if (!TRANSACTION_PAID.equals(payloadData.getType())) {
                 log.info("[Webhook] Ignore type={}", payloadData.getType());
                 return;
             }
@@ -171,25 +174,41 @@ public class PaymentService {
                 log.error("🚨 [Webhook] paymentId 누락. payload={}", payload);
                 return;
             }
-        	
-        	
-        	
+	
         	String paymentId = payloadData.getData().getPaymentId();
         	
-        	//Map<String, Object> apiDetails = portoneApiService.portonePaymentDetails(paymentId);
+        	confirmPaymentAndCompleteOrder(paymentId);
         	
+        	/*
+        	if (paymentMapper.existsByPaymentId(paymentId) > 0) {
+        	    log.info("이미 처리된 결제번호. paymentId={}", paymentId);
+        	    return;
+        	}
+	
         	PortOnePaymentResponse apiDetails = portoneApiService.portonePaymentDetails(paymentId);
         	
         	Long orderId = extractOrderId(apiDetails.getCustomData());
         	
+        	System.out.println("✅ 최종 확보된 주문 ID (orderId): " + orderId);
+        	
         	System.out.println("apiDetails::::::");
             System.out.println(apiDetails);
 
-        	//Long orderId = (Long) apiDetails.get("orderId");
-            //Long orderId = 1L;
-            System.out.println("✅ 최종 확보된 주문 ID (orderId): " + orderId);
+        	Order order = orderMapper.selectOrder(orderId);        	
+        	
+        	Long paidAmount = apiDetails.getAmount().getTotal();
+        	 
+        	if(!paidAmount.equals(order.getTotalAmount())) {
+        		throw new IllegalStateException(
+                        "결제금액 다름. order=" + order.getTotalAmount()
+                        + ", paid=" + paidAmount
+                    );
+        	}
 
+        	orderService.changeOrderStatus(orderId);
+        	
             orderService.completeOrderTransaction(paymentId, orderId);
+            */
     	} catch (JsonProcessingException e) {
             log.error("🚨 [Webhook] JSON 파싱 실패. payload={}", payload, e);
             return;
@@ -201,6 +220,50 @@ public class PaymentService {
         
 	}
 
+	@Transactional
+    public void confirmPaymentAndCompleteOrder(String paymentId) {
+
+        /* ===== 1. 멱등성 ===== */
+        if (paymentMapper.existsByPaymentId(paymentId) > 0) {
+            log.info("이미 존재하는 주문번호. paymentId={}", paymentId);
+            return;
+        }
+
+        /* ===== 2. PG 결제 조회 ===== */
+        PortOnePaymentResponse payment =
+            portoneApiService.portonePaymentDetails(paymentId);
+
+        Long orderId = extractOrderId(payment.getCustomData());
+
+        /* ===== 3. 주문 조회 ===== */
+        Order order = orderMapper.selectOrder(orderId);
+        if (order == null) {
+            throw new IllegalStateException("주문 없음. orderId=" + orderId);
+        }
+
+        /* ===== 4. 금액 검증 ===== */
+        Long paidAmount = payment.getAmount().getTotal();
+        if (!paidAmount.equals(Long.valueOf(order.getTotalAmount()))) {
+            throw new IllegalStateException(
+                "결제금액 불일치. order=" + order.getTotalAmount()
+                    + ", paid=" + paidAmount
+            );
+        }
+
+        /* ===== 5. 결제 저장 ===== */
+        paymentMapper.insertPayment(paymentId, orderId, paidAmount);
+
+        /* ===== 6. 주문 상태 변경 ===== */
+        orderService.changeOrderStatus(
+            orderId,
+            "PAYMENT_READY",
+            "PAID"
+        );
+
+        /* ===== 7. 재고 차감 ===== */
+        orderService.decreaseStockByOrder(orderId);
+    }
+	
 	private Long extractOrderId(String customData) {
 
 	    if (customData == null || customData.isBlank()) {
