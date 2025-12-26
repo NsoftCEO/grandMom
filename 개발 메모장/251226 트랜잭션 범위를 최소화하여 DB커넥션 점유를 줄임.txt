@@ -1,0 +1,8 @@
+251216
+트랜잭션 범위를 최소화하여 DB커넥션 점유를 줄임
+예시:
+handlePaymentWebhook(){
+1. verifyWebhook, 포트원 API호출 
+2. 트랜잭션코드뭉치 
+}
+verifyWebhook, 포트원 API호출의 트랜잭션을 제외하여  DB커넥션 점유를 줄임
