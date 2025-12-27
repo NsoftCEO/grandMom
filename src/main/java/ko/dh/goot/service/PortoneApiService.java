@@ -57,12 +57,26 @@ public class PortoneApiService {
                     PortOnePaymentResponse.class
                 );
 
+            System.out.println("사용한 paymentId:");
+            System.out.println(paymentId);
+            System.out.println("포트원 respose::");
+            System.out.println(response);
+            System.out.println("body::");
+            System.out.println(response.getBody());
+            
             PortOnePaymentResponse body = response.getBody();
 
             if (!response.getStatusCode().is2xxSuccessful() || body == null) {
                 throw new IllegalStateException("PortOne API 응답 실패");
             }
 
+            if (!paymentId.equals(body.getId())) {
+                throw new IllegalStateException(
+                    "결제 ID 불일치. request paymentId=" + paymentId
+                    + ", 포트원 response=" + body.getId()
+                );
+            }
+            
             /* ===== 1. 상태 검증 ===== */
             if (!"PAID".equals(body.getStatus())) {
                 throw new IllegalStateException(
@@ -84,12 +98,10 @@ public class PortoneApiService {
                 );
             }
 
-            /* ===== 3. orderId 검증 ===== */
-			/*
-			 * if (body.getCustomData() == null || body.getCustomData().getOrderId() ==
-			 * null) { throw new IllegalStateException("customData.orderId 누락"); }
-			 */
-
+            /* ===== 3. orderId 검증 ===== */			
+			Long extractOrderId = extractOrderId(body.getCustomData());
+			body.applyOrderId(extractOrderId);
+			 
             return body;
 
         } catch (Exception e) {
@@ -97,104 +109,33 @@ public class PortoneApiService {
             throw new RuntimeException("PortOne 결제 조회 실패", e);
         }
     }
+    
+    // 나중에 유틸클래스 만들어서 옮길수도있음
+    private Long extractOrderId(String customData) {
+
+	    if (customData == null || customData.isBlank()) {
+	    	throw new IllegalStateException("extractOrderId중 customData 없습니다.");
+	    }
+
+	    try {
+	        PortOnePaymentResponse.CustomData data =
+	            objectMapper.readValue(
+	                customData,
+	                PortOnePaymentResponse.CustomData.class
+	            );
+	        
+	        if (data.getOrderId() == null) {
+	            throw new IllegalStateException("customData.orderId 누락");
+	        }
+	        
+	        return data.getOrderId();
+
+	    } catch (Exception e) {
+	        throw new IllegalStateException(
+	            "customData 파싱 실패: " + customData, e
+	        );
+	    }
+	}
 
 
-    /**
-     * PortOne API를 통해 paymentId로 결제 상세 정보를 조회합니다. (V2 API 사용)
-     * V2 인증 방식: Authorization: PortOne <API_SECRET>
-     * @param paymentId 웹훅으로부터 수신한 PG사 결제 ID
-     * @return PortOne API 응답에서 핵심 정보를 추출한 Map (merchantUid, totalAmount, status 등)
-     
-    @SuppressWarnings("unchecked")
-    public Map<String, Object> portonePaymentDetails(String paymentId) {
-    	
-        String paymentUrl = payDetailURL + paymentId;
-        
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set(HttpHeaders.AUTHORIZATION, "PortOne " + apiSecret); 
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-        
-        try {
-            ResponseEntity<Map> response = restTemplate.exchange(
-                paymentUrl,
-                HttpMethod.GET,
-                entity,
-                Map.class
-            );
-            
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                Map<String, Object> responseBody = response.getBody();
-                log.info("포트원 API 응답 전체: {}", responseBody);
-                
-                System.out.println("1111");         
-                Object amountObj = responseBody.get("amount");
-                Long totalAmount = 0L;
-                
-                if (amountObj instanceof Map) {
-                    // V2 방식: amount가 {total: 189000, ...} 형태의 Map인 경우
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> amountMap = (Map<String, Object>) amountObj;
-                    Object totalVal = amountMap.get("total");
-                    if (totalVal instanceof Number) {
-                        totalAmount = ((Number) totalVal).longValue();
-                    }
-                } else if (amountObj instanceof Number) {
-                    // V1 혹은 단순 숫자 방식 대응
-                    totalAmount = ((Number) amountObj).longValue();
-                }
-                
-                System.out.println("2222");
-                String status = (String) responseBody.get("status");
-                System.out.println("333");
-                Object customDataObj = responseBody.get("customData");
-                
-                Long orderId = null;
-
-                if (customDataObj != null) {
-                    try {
-                        Map<String, Object> customDataMap = null;
-                        
-                        if (customDataObj instanceof Map) {
-                            customDataMap = (Map<String, Object>) customDataObj;
-                        } else if (customDataObj instanceof String) {
-                            // JSON 문자열인 경우 파싱 시도
-                            String customDataStr = (String) customDataObj;
-                            if (!customDataStr.isEmpty() && customDataStr.startsWith("{")) {
-                                customDataMap = objectMapper.readValue(customDataStr, new TypeReference<Map<String, Object>>() {});
-                            }
-                        }
-
-                        if (customDataMap != null) {
-                            Object oId = customDataMap.get("orderId");
-                            if (oId != null) {
-                                // 문자열이든 숫자든 Long으로 변환
-                            	orderId = Long.valueOf(oId.toString());
-                            }
-                        }
-                    } catch (Exception e) {
-                        log.warn("⚠️ customData 파싱 중 오류 발생: {}", e.getMessage());
-                    }
-                }
-                
-                if (orderId == null || totalAmount == null || status == null) {
-                    throw new IllegalStateException("PortOne API 응답에서 필수 데이터 (orderId, amount, status)가 누락되었습니다.");
-                }
-                
-                Map<String, Object> details = new HashMap<>();
-                details.put("totalAmount", totalAmount);
-                details.put("status", status); 
-                details.put("orderId", orderId); 
-                
-                return details;
-
-            } else {
-                throw new RuntimeException("PortOne API 서버 통신 실패. 상태 코드: " + response.getStatusCodeValue());
-            }
-
-        } catch (Exception e) {
-            System.err.println("🚨 PortOne API 결제 상세 조회 중 치명적인 오류 발생: " + e.getMessage());
-            throw new RuntimeException("API 결제 상세 조회 실패: " + e.getMessage(), e);
-        }
-    }*/
 }

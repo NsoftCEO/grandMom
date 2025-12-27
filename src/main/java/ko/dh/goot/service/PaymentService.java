@@ -1,25 +1,15 @@
 package ko.dh.goot.service;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import ko.dh.goot.controller.OrderController;
 import ko.dh.goot.dao.OrderMapper;
 import ko.dh.goot.dao.PaymentMapper;
 import ko.dh.goot.dto.Order;
-import ko.dh.goot.dto.Payment;
 import ko.dh.goot.dto.PortOnePaymentResponse;
 import ko.dh.goot.dto.WebhookPayload;
 import lombok.RequiredArgsConstructor;
@@ -99,7 +89,7 @@ public class PaymentService {
         /* ===== 2. PG 결제 조회 ===== */
         PortOnePaymentResponse portonePaymentDetails = portoneApiService.portonePaymentDetails(paymentId);
 
-        Long orderId = extractOrderId(portonePaymentDetails.getCustomData());
+        Long orderId = portonePaymentDetails.getOrderId();
 
         /* ===== 3. 주문 조회 ===== */
         Order order = orderMapper.selectOrder(orderId);
@@ -130,27 +120,5 @@ public class PaymentService {
         orderService.decreaseStockByOrder(orderId);*/
     }
 	
-	private Long extractOrderId(String customData) {
-
-	    if (customData == null || customData.isBlank()) {
-	        return null;
-	    }
-
-	    try {
-	        PortOnePaymentResponse.CustomData data =
-	            objectMapper.readValue(
-	                customData,
-	                PortOnePaymentResponse.CustomData.class
-	            );
-
-	        return data.getOrderId();
-
-	    } catch (Exception e) {
-	        throw new IllegalStateException(
-	            "customData 파싱 실패: " + customData, e
-	        );
-	    }
-	}
-
     
 }
