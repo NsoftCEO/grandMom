@@ -27,23 +27,6 @@ public class PaymentController {
     	System.out.println("paymentPage:::ㄴㄴㄴㄴ");
         return "payment/payment";
     }
- 
-    @PostMapping("/ready")
-    public String kakaoPayReady(@RequestParam("amount") int amount) {
-    	System.out.println("kakaoPayReady 맵핑");
-    	long orderId = System.currentTimeMillis();
-        String redirectUrl = paymentService.createKakaoPayReady(orderId, amount);
-        return "redirect:" + redirectUrl;
-    }
-
-    @GetMapping("/approve")
-    public String approve(@RequestParam(value = "orderId", required = false) String orderId,
-                          @RequestParam(value = "transactionId", required = false) String transactionId,
-                          Model model) {
-        model.addAttribute("orderId", orderId);
-        model.addAttribute("transactionId", transactionId);
-        return "payment_complete";
-    }
 
     @PostMapping("/handlePaymentWebhook")
     public ResponseEntity<?> handlePaymentWebhook(
