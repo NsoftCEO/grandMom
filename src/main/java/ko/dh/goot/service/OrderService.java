@@ -202,5 +202,9 @@ public class OrderService {
         }
     }
 
+	public int changeOrderStatus(Long orderId, String beforeStatus, String afterStatus) {
+		return orderMapper.changeOrderStatus(orderId, beforeStatus, afterStatus);
+	}
+
 
 }

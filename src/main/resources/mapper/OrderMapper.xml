@@ -65,4 +65,16 @@
             <!-- AND order_status = 'PAYMENT_READY' --> 
             
     </select>
+    
+    <update id="changeOrderStatus">
+	    UPDATE orders
+	    SET
+	        order_status = #{afterStatus},
+	        updated_at = NOW()
+	    WHERE
+	        order_id = #{orderId}
+	        AND order_status = #{beforeStatus}
+	</update>
+    
+    
 </mapper>

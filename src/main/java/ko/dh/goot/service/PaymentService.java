@@ -90,6 +90,7 @@ public class PaymentService {
         /* ===== 2. PG 결제 조회 ===== */
         PortOnePaymentResponse portonePaymentDetails = portoneApiService.portonePaymentDetails(paymentId);
 
+  
         Long orderId = 1L;//portonePaymentDetails.getOrderId();
 
         /* ===== 3. 주문 조회 ===== */
@@ -111,14 +112,15 @@ public class PaymentService {
         //paymentMapper.insertPayment(paymentId, orderId, paidAmount);
         paymentMapper.insertPayment(portonePaymentDetails);
         
-        /*
+        System.out.println("getStatus::");
+        System.out.println(portonePaymentDetails.getStatus());
         // ===== 6. 주문 상태 변경 =====
-        orderService.changeOrderStatus(
-            orderId,
-            "PAYMENT_READY",
-            "PAID"
-        );
-
+        int resultCount = orderService.changeOrderStatus(orderId,"PAYMENT_READY", portonePaymentDetails.getStatus());
+        
+        if(resultCount != 1) {
+        	throw new IllegalStateException("주문상태 변경 오류 orderId=" + orderId);
+        }
+        /*
         // ===== 7. 재고 차감 =====
         orderService.decreaseStockByOrder(orderId);*/
     }
