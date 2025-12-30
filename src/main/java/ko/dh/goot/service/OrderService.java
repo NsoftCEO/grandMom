@@ -53,6 +53,8 @@ public class OrderService {
         
         int rowCount = orderMapper.insertOrder(order);
 
+        // 여기서 order_item에 저장
+        
         if (rowCount != 1) {
             // 💡 주문 저장이 실패했으므로 예외 발생 및 트랜잭션 롤백 유도
             throw new IllegalStateException("주문 데이터 저장에 실패했습니다. 영향 받은 행: " + rowCount);
@@ -67,8 +69,7 @@ public class OrderService {
     public Map<String, Object> createPaymentParams(Long orderId) {
 
         Order order = orderMapper.selectOrder(orderId);
-        System.out.println("orderId::");
-        System.out.println(orderId);
+
         if (order == null) {
             throw new IllegalArgumentException("주문 없음");
         }

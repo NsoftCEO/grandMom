@@ -120,9 +120,9 @@ public class PaymentService {
         if(resultCount != 1) {
         	throw new IllegalStateException("주문상태 변경 오류 orderId=" + orderId);
         }
-        /*
+
         // ===== 7. 재고 차감 =====
-        orderService.decreaseStockByOrder(orderId);*/
+        //orderService.decreaseStockByOrder(orderId);
     }
 	
     

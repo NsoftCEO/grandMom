@@ -1,16 +1,22 @@
 -- goot.order_item definition
 
-CREATE TABLE `order_item` (
-  `order_item_id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `order_id` bigint(20) NOT NULL,
-  `product_id` bigint(20) NOT NULL,
-  `quantity` int(11) NOT NULL,
-  `price` int(11) NOT NULL,
-  `created_at` datetime DEFAULT current_timestamp(),
+CREATE TABLE IF NOT EXISTS order_item (
+    order_item_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id        BIGINT NOT NULL,
+    product_id      BIGINT NOT NULL,
+    
+    product_name    VARCHAR(255) NOT NULL,
+    product_price   INT NOT NULL,
+    quantity        INT NOT NULL,
+    total_price     INT NOT NULL,
+    
+    option_info     JSON COMMENT '주문 시점 상품 옵션 스냅샷',
+    
+    refund_status   VARCHAR(20) NOT NULL DEFAULT 'NONE' 
+                    COMMENT 'NONE, REQUESTED, PARTIAL, REFUNDED, FAILED',
+    `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`order_item_id`),
-  KEY `order_id` (`order_id`),
-  KEY `product_id` (`product_id`),
-  CONSTRAINT `order_item_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`) ON DELETE CASCADE,
+
+   CONSTRAINT `order_item_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`) ON DELETE CASCADE,
   CONSTRAINT `order_item_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `product` (`product_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
