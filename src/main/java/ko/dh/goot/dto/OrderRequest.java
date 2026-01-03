@@ -2,6 +2,15 @@ package ko.dh.goot.dto;
 
 import java.util.Map;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
 public class OrderRequest {
     private Long productId;
     private Integer quantity;
@@ -18,61 +27,5 @@ public class OrderRequest {
      * 예: {"color":"black","size":"L"}
      */
     private Map<String, Object> optionInfo;
-    
-	public Long getProductId() {
-		return productId;
-	}
-	public void setProductId(Long productId) {
-		this.productId = productId;
-	}
-	public Integer getQuantity() {
-		return quantity;
-	}
-	public void setQuantity(Integer quantity) {
-		this.quantity = quantity;
-	}
-	public String getReceiver() {
-		return receiver;
-	}
-	public void setReceiver(String receiver) {
-		this.receiver = receiver;
-	}
-	public String getPhone() {
-		return phone;
-	}
-	public void setPhone(String phone) {
-		this.phone = phone;
-	}
-	public String getAddress() {
-		return address;
-	}
-	public void setAddress(String address) {
-		this.address = address;
-	}
-	public String getMemo() {
-		return memo;
-	}
-	public void setMemo(String memo) {
-		this.memo = memo;
-	}
-	public String getOrderName() {
-		return orderName;
-	}
-	public void setOrderName(String orderName) {
-		this.orderName = orderName;
-	}
-	public Integer getClientTotalAmount() {
-		return clientTotalAmount;
-	}
-	public void setClientTotalAmount(Integer clientTotalAmount) {
-		this.clientTotalAmount = clientTotalAmount;
-	} 
-	public Map<String, Object> getOptionInfo() {
-        return optionInfo;
-    }
-    public void setOptionInfo(Map<String, Object> optionInfo) {
-        this.optionInfo = optionInfo;
-    }
-
     
 }
