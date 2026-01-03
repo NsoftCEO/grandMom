@@ -86,24 +86,58 @@ async function handlePayment() {
  * 1️⃣ 주문 생성
  */
 async function prepareOrder() {
-    const formData = new FormData(document.getElementById('orderForm'));
-    const orderData = Object.fromEntries(formData.entries());
 
-    orderData.orderName =
-        document.getElementById('productName').dataset.productname;
+    /* ===============================
+     * 기본 검증
+     * =============================== */
+    const $form = $('#orderForm');
 
-    const res = await fetch("/order/prepareOrder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderData)
-    });
-
-    if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "주문 생성 실패");
+    if (!$form.find('[name="receiver"]').val()) {
+        alert('받는 분 이름을 입력하세요.');
+        return;
     }
 
-    return await res.json(); // { orderId }
+    /* ===============================
+     * 주문 데이터 구성 (중요)
+     * =============================== */
+    const orderData = {
+        productId: Number($form.find('[name="productId"]').val()),
+        quantity: Number($form.find('[name="quantity"]').val()),
+        receiver: $form.find('[name="receiver"]').val(),
+        phone: $form.find('[name="phone"]').val(),
+        address: $form.find('[name="address"]').val(),
+        memo: $form.find('[name="memo"]').val(),
+        orderName: $('#productName').data('productname'),
+        clientTotalAmount: Number($('#price').data('price')),
+
+        // ✅ 옵션 스냅샷 (JSON)
+        optionInfo: {
+            color: $('#optionColor').val(),
+            size: $('#optionSize').val()
+        }
+    };
+
+    try {
+        const res = await fetch('/order/prepareOrder', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderData)
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || '주문 생성 실패');
+        }
+
+        return await res.json(); // { orderId, totalAmount }     
+          
+    } catch (err) {
+        console.error(err);
+        alert(err.message);
+        throw err;
+    }
 }
 
 /**
