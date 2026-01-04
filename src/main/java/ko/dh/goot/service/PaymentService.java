@@ -20,6 +20,7 @@ import lombok.extern.log4j.Log4j2;
 @RequiredArgsConstructor
 public class PaymentService {
 
+	private final ProductOptionService productOptionService;
 	private final OrderService orderService;
 	private final WebhookService webhookService;
 	private final PortoneApiService portoneApiService;	
@@ -112,17 +113,20 @@ public class PaymentService {
         //paymentMapper.insertPayment(paymentId, orderId, paidAmount);
         paymentMapper.insertPayment(portonePaymentDetails);
         
+        // ===== 6. 재고 차감 =====
+        // decreaseStock(Long optionId, int orderQuantity)
+        productOptionService.decreaseStock(orderId, 5);
+        
         System.out.println("getStatus::");
         System.out.println(portonePaymentDetails.getStatus());
-        // ===== 6. 주문 상태 변경 =====
+        // ===== 7. 주문 상태 변경 =====
         int resultCount = orderService.changeOrderStatus(orderId,"PAYMENT_READY", portonePaymentDetails.getStatus());
         
         if(resultCount != 1) {
         	throw new IllegalStateException("주문상태 변경 오류 orderId=" + orderId);
         }
 
-        // ===== 7. 재고 차감 =====
-        //orderService.decreaseStockByOrder(orderId);
+        
     }
 	
     
