@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="ko.dh.goot.dao.ProductOptionMapper">
+
+	<update id="decreaseStock">
+        UPDATE product_option
+        SET stock_quantity = stock_quantity - #{quantity}
+        WHERE option_id = #{optionId}
+          AND stock_quantity >= #{quantity}
+    </update>
+    
+</mapper>
