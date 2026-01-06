@@ -1,0 +1,146 @@
+CREATE TABLE product_category (
+    category_id     BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    category_name   VARCHAR(100) NOT NULL COMMENT '카테고리명',
+
+    use_yn          CHAR(1) NOT NULL DEFAULT 'Y'
+                    COMMENT '사용 여부 (Y/N)',
+
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_category_name
+        UNIQUE (category_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE product (
+    product_id      BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_name  VARCHAR(255) NOT NULL COMMENT '상품명',
+    base_price      INT NOT NULL COMMENT '기본 가격',
+    description     TEXT COMMENT '상품 상세 설명',
+    category_id     BIGINT COMMENT '카테고리 ID',
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE product_image (
+    image_id        BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    product_id      BIGINT UNSIGNED NOT NULL,
+    option_id       BIGINT UNSIGNED DEFAULT NULL,
+
+    image_url       VARCHAR(512) NOT NULL,
+    original_name   VARCHAR(255),
+
+    image_type      VARCHAR(20) NOT NULL DEFAULT 'DETAIL'
+                    COMMENT 'MAIN, DETAIL, OPTION, DESC',
+
+    sort_order      INT DEFAULT 0,
+    use_yn          CHAR(1) NOT NULL DEFAULT 'Y'
+                    COMMENT '사용 여부 (Y/N)',
+
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_image_product
+        FOREIGN KEY (product_id)
+        REFERENCES product(product_id)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_image_option
+        FOREIGN KEY (option_id)
+        REFERENCES product_option(option_id)
+        ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE product_option (
+    option_id        BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id       BIGINT UNSIGNED NOT NULL,
+
+    color            VARCHAR(50) NOT NULL DEFAULT 'DEFAULT'
+                     COMMENT '색상',
+    size             VARCHAR(50) NOT NULL DEFAULT 'FREE'
+                     COMMENT '사이즈',
+
+    additional_price INT NOT NULL DEFAULT 0
+                     COMMENT '옵션 추가 금액',
+    stock_quantity   INT NOT NULL
+                     COMMENT '재고 수량',
+
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                     ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_option_product
+        FOREIGN KEY (product_id)
+        REFERENCES product(product_id),
+
+    CONSTRAINT uk_product_option
+        UNIQUE (product_id, color, size),
+
+    CONSTRAINT chk_stock_quantity
+        CHECK (stock_quantity >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE orders (
+    order_id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id          VARCHAR(50) NOT NULL,
+
+    order_name       VARCHAR(255) NOT NULL,
+    total_amount     INT NOT NULL,
+
+    order_status     VARCHAR(30) NOT NULL
+                     COMMENT 'PAYMENT_READY, PAID, COMPLETED, CANCELLED, FAILED',
+
+    receiver_name    VARCHAR(100) NOT NULL,
+    receiver_phone   VARCHAR(30) NOT NULL,
+    receiver_address VARCHAR(255) NOT NULL,
+    delivery_memo    VARCHAR(255),
+
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                     ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE order_item (
+    order_item_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    order_id      BIGINT UNSIGNED NOT NULL,
+    product_id    BIGINT UNSIGNED NOT NULL,
+    option_id     BIGINT UNSIGNED NULL,
+
+    product_name  VARCHAR(255) NOT NULL,
+    unit_price    INT NOT NULL,
+    quantity      INT NOT NULL,
+    total_price   INT NOT NULL,
+
+    color         VARCHAR(50) NOT NULL,
+    size          VARCHAR(50) NOT NULL,
+
+    option_info   JSON,
+    refund_status VARCHAR(20) NOT NULL DEFAULT 'NONE',
+
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_order_item_order
+        FOREIGN KEY (order_id)
+        REFERENCES orders(order_id)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_order_item_product
+        FOREIGN KEY (product_id)
+        REFERENCES product(product_id)
+        ON DELETE RESTRICT,
+
+    CONSTRAINT fk_order_item_option
+        FOREIGN KEY (option_id)
+        REFERENCES product_option(option_id)
+        ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
