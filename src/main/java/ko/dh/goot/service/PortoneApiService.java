@@ -27,8 +27,6 @@ import java.util.HashMap;
 @Service
 public class PortoneApiService {
 
-    // PortOne API Secret Key (PortOne 콘솔에서 발급받은 V2 API Secret)
-    // 이 값이 PortOne 공식 문서의 'MY_API_SECRET'에 해당합니다.
     @Value("${portone.api-secret}")
     private String apiSecret;
     

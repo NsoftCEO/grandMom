@@ -67,8 +67,8 @@ public class OrderService {
         }
 
         Long orderId = order.getOrderId();
-System.out.println("optionInfo::");
-System.out.println(req.getOptionInfo());
+		System.out.println("optionInfo::");
+		System.out.println(req.getOptionInfo());
         String optionInfoJson = null;
         if (req.getOptionInfo() != null) {
             try {
