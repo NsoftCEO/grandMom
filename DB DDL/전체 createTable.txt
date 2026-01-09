@@ -27,15 +27,28 @@ CREATE TABLE `address` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE product (
-    product_id      BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    product_name  VARCHAR(255) NOT NULL COMMENT '상품명',
-    base_price      INT NOT NULL COMMENT '기본 가격',
-    description     TEXT COMMENT '상품 상세 설명',
-    category_id     BIGINT COMMENT '카테고리 ID',
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    product_id     BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_name   VARCHAR(255) NOT NULL COMMENT '상품명',
+    base_price     INT NOT NULL COMMENT '기본 가격',
+    description    TEXT COMMENT '상품 상세 설명',
+
+    category_id    BIGINT COMMENT '카테고리 ID',
+
+    status ENUM('ACTIVE','HIDDEN','STOP')
+           NOT NULL DEFAULT 'ACTIVE'
+           COMMENT '상품 판매 상태',
+
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                   ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_product_category
+        FOREIGN KEY (category_id)
+        REFERENCES product_category(category_id)
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COMMENT='상품 정보';
+
 
 CREATE TABLE product_image (
     image_id        BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
