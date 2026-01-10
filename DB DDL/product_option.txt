@@ -6,9 +6,6 @@ CREATE TABLE product_option (
                      COMMENT '색상',
     size             VARCHAR(50) NOT NULL DEFAULT 'FREE'
                      COMMENT '사이즈',
-
-    additional_price INT NOT NULL DEFAULT 0
-                     COMMENT '옵션 추가 금액',
     stock_quantity   INT NOT NULL
                      COMMENT '재고 수량',
 
