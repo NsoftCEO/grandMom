@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import ko.dh.goot.dto.Product;
+import ko.dh.goot.dto.ProductListItem;
 import ko.dh.goot.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -25,11 +26,10 @@ public class ProductController {
 	// 상품 목록
 	@GetMapping("/productList")
 	public String productList(@RequestParam Map<String, Object> param, Model model) {
-	    
-	    // category, priceMin, priceMax 등 다양하게 확장 가능
+		System.out.println("/productList 맵핑");
 	    System.out.println("파라미터: " + param);
 	    
-	    List<Product> productList = productService.selectProductList(param);
+	    List<ProductListItem> productList = productService.selectProductList(param);
 	    model.addAttribute("productList", productList);
 	    
 	    return "product/productList";

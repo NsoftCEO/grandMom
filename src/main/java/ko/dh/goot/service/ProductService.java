@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import ko.dh.goot.dao.ProductMapper;
 import ko.dh.goot.dto.Product;
+import ko.dh.goot.dto.ProductListItem;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -15,7 +16,7 @@ public class ProductService {
 	
 	private final ProductMapper productMapper;
 
-	public List<Product> selectProductList(Map<String, Object> param) {
+	public List<ProductListItem> selectProductList(Map<String, Object> param) {
 
 		return productMapper.selectProductList(param);
 	}

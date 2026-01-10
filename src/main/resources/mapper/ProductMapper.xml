@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="ko.dh.goot.dao.ProductMapper">
+
+<resultMap id="ProductListResultMap" type="ko.dh.goot.dto.ProductList">
+    <id property="productId" column="product_id"/>
+    <result property="productName" column="product_name"/>
+    <result property="price" column="price"/>
+    <result property="salePrice" column="sale_price"/>
+    <result property="status" column="status"/>
+    <result property="createdAt" column="created_at"/>
+    <result property="totalStock" column="total_stock"/>
+    <result property="mainImageUrl" column="main_image_url"/>
+</resultMap>
+
 <resultMap id="ProductWithImagesResultMap" type="ko.dh.goot.dto.Product">
     <id property="productId" column="product_id"/>
     <result property="productName" column="product_name"/>
@@ -21,34 +33,52 @@
     </collection>
 </resultMap>
 	
-	<select id="selectProductList" resultType="Product">
-    SELECT 
-        p.product_id AS productId,
-        p.product_name AS productName,
+<select id="selectProductList" parameterType="map" resultMap="ProductListResultMap">
+
+    SELECT
+        p.product_id,
+        p.product_name,
         p.price,
-        p.category,
-        p.stock,
-        p.description,
-        p.created_at AS createdAt,
-        p.updated_at AS updatedAt,
-        pi.image_path AS mainImage
+        p.sale_price,
+        p.status,
+        p.created_at,
+        IFNULL(opt.total_stock, 0) AS total_stock, /* 총 재고, 값이 null이면 0 반환 */
+        img.image_url AS main_image_url /* 대표 이미지 */
+
     FROM product p
-    LEFT JOIN product_image pi 
-        ON p.product_id = pi.product_id 
-        AND pi.sort_order = 0
-	<where>
-	    <if test="category != null and category != ''">
-	        category = #{category}
-	    </if>
-	    <if test="priceMin != null">
-	        price &gt;= #{priceMin}
-	    </if>
-	    <if test="priceMax != null">
-	        price &lt;= #{priceMax}
-	    </if>
-	</where>
+
+    /* 옵션 재고 집계 */
+    LEFT JOIN (
+        SELECT
+            product_id,
+            SUM(stock_quantity) AS total_stock
+        FROM product_option
+        GROUP BY product_id
+    ) opt
+        ON opt.product_id = p.product_id
+
+    /* 대표 이미지 */
+    LEFT JOIN product_image img
+        ON img.product_id = p.product_id
+       AND img.image_type = 'MAIN'
+       AND img.use_yn = 'Y'
+       AND img.sort_order = 0
+
+    WHERE p.status = 'ACTIVE'
+
+    <if test="categoryId != null">
+        AND p.category_id = #{categoryId}
+    </if>
+
+    <if test="keyword != null and keyword != ''">
+        AND p.product_name LIKE CONCAT('%', #{keyword}, '%')
+    </if>
+
     ORDER BY p.created_at DESC
-	</select>
+
+</select>
+
+
 
 	<select id="selectProductById" parameterType="long" resultMap="ProductWithImagesResultMap">
     SELECT 
