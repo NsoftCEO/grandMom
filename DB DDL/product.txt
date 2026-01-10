@@ -1,7 +1,8 @@
 CREATE TABLE product (
     product_id     BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     product_name   VARCHAR(255) NOT NULL COMMENT '상품명',
-    base_price     INT NOT NULL COMMENT '기본 가격',
+    price       INT NOT NULL COMMENT '정가',
+    sale_price  INT NULL COMMENT '할인 판매가',
     description    TEXT COMMENT '상품 상세 설명',
 
     category_id    BIGINT UNSIGNED COMMENT '카테고리 ID',
