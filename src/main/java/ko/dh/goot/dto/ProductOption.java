@@ -1,24 +1,17 @@
 package ko.dh.goot.dto;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.Setter;
 
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Setter
 public class ProductOption {
 
     private Long optionId;
-    private Long productId;
-    private String color; //(기본값: DEFAULT)
-    private String size; //사이즈 (기본값: FREE)   
-    private Integer additionalPrice; // 옵션 추가 금액 (없으면 0), 최종가격 = basePrice + additionalPrice로
-    private Integer stockQuantity; //현재 재고 수량
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private String color;
+    private String size;
+    private Integer stockQuantity;
+    private List<ProductImage> images; 
 }

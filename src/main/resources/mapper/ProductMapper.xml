@@ -13,25 +13,37 @@
     <result property="mainImageUrl" column="main_image_url"/>
 </resultMap>
 
-<resultMap id="ProductWithImagesResultMap" type="ko.dh.goot.dto.Product">
+<resultMap id="ProductDetailResultMap" type="ko.dh.goot.dto.ProductDetail">
     <id property="productId" column="product_id"/>
     <result property="productName" column="product_name"/>
     <result property="price" column="price"/>
-    <result property="category" column="category"/>
-    <result property="stock" column="stock"/>
+    <result property="salePrice" column="sale_price"/>
     <result property="description" column="description"/>
+    <result property="status" column="status"/>
     <result property="createdAt" column="created_at"/>
-    <result property="updatedAt" column="updated_at"/>
+
+    <association property="category" javaType="ko.dh.goot.dto.ProductCategory">
+        <id property="categoryId" column="category_id"/>
+        <result property="categoryName" column="category_name"/>
+    </association>
 
     <collection property="images" ofType="ko.dh.goot.dto.ProductImage">
         <id property="imageId" column="image_id"/>
-        <result property="productId" column="product_id"/>
-        <result property="imagePath" column="image_path"/>
+        <result property="imageUrl" column="image_url"/>
+        <result property="imageType" column="image_type"/>
         <result property="sortOrder" column="sort_order"/>
-        <result property="createdAt" column="image_created_at"/>
-        <result property="updatedAt" column="image_updated_at"/>
+    </collection>
+
+    <collection property="options" ofType="ko.dh.goot.dto.ProductOption">
+        <id property="optionId" column="option_id"/>
+        <result property="color" column="color"/>
+        <result property="size" column="size"/>
+        <result property="stockQuantity" column="stock_quantity"/>
     </collection>
 </resultMap>
+
+
+
 	
 <select id="selectProductList" parameterType="map" resultMap="ProductListResultMap">
 
@@ -78,27 +90,53 @@
 
 </select>
 
-
-
-	<select id="selectProductById" parameterType="long" resultMap="ProductWithImagesResultMap">
-    SELECT 
+<select id="selectProductDetail" parameterType="long" resultMap="ProductDetailResultMap">
+    SELECT
         p.product_id,
         p.product_name,
         p.price,
-        p.category,
-        p.stock,
+        p.sale_price,
         p.description,
+        p.status,
         p.created_at,
-        p.updated_at,
-        pi.image_id,
-        pi.image_path,
-        pi.sort_order,
-        pi.created_at AS image_created_at,
-        pi.updated_at AS image_updated_at
+
+        c.category_id,
+        c.category_name,
+
+        o.option_id,
+        o.color,
+        o.size,
+        o.stock_quantity,
+
+        i.image_id,
+        i.image_url,
+        i.image_type,
+        i.option_id AS image_option_id,
+        i.sort_order
+
     FROM product p
-    LEFT JOIN product_image pi 
-        ON p.product_id = pi.product_id
+
+    LEFT JOIN product_category c
+      ON p.category_id = c.category_id
+     AND c.use_yn = 'Y'
+
+    LEFT JOIN product_option o
+      ON o.product_id = p.product_id
+
+    LEFT JOIN product_image i
+      ON i.product_id = p.product_id
+     AND i.use_yn = 'Y'
+     -- 옵션 이미지만 매핑되도록 (NULL은 대표 이미지)
+     -- OR i.option_id = o.option_id
+
     WHERE p.product_id = #{productId}
-    ORDER BY pi.sort_order ASC
-	</select>
+      AND p.status = 'ACTIVE'
+
+    ORDER BY
+        o.option_id ASC,
+        i.sort_order ASC
+</select>
+
+
+
 </mapper>

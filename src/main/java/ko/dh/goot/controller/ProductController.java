@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import ko.dh.goot.dto.Product;
+import ko.dh.goot.dto.ProductDetail;
 import ko.dh.goot.dto.ProductListItem;
 import ko.dh.goot.service.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -39,12 +39,11 @@ public class ProductController {
 
 	// 상품 상세
     @GetMapping("/detail/{productId}")
-    public String selectProductById(@PathVariable("productId") int productId, Model model) {
+    public String selectProductDetail(@PathVariable("productId") int productId, Model model) {
     	System.out.println("productId::");
         System.out.println(productId);
-    	Product product = productService.selectProductById(productId);
-        System.out.println("product::");
-        System.out.println(product.getImages().get(0).getImagePath());
+        ProductDetail product = productService.selectProductDetail(productId);
+
         
         model.addAttribute("product", product);
         return "product/productDetail";

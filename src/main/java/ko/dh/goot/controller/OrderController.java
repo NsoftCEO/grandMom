@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ko.dh.goot.dto.OrderRequest;
 import ko.dh.goot.dto.OrderResponse;
 import ko.dh.goot.dto.Product;
+import ko.dh.goot.dto.ProductDetail;
 import ko.dh.goot.service.OrderService;
 import ko.dh.goot.service.PortoneApiService;
 import ko.dh.goot.service.ProductService;
@@ -52,7 +53,7 @@ public class OrderController {
                             @RequestParam(value = "quantity", defaultValue = "1") int quantity,
                             Model model) {
     	System.out.println("주문상세로 이동");
-        Product product = productService.selectProductById(productId);
+        ProductDetail product = productService.selectProductDetail(productId); // 수정해야됨
         model.addAttribute("product", product);
         model.addAttribute("quantity", quantity);
         model.addAttribute("storeId", storeId);

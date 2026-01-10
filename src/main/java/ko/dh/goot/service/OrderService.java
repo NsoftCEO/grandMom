@@ -16,6 +16,7 @@ import ko.dh.goot.dto.OrderItem;
 import ko.dh.goot.dto.OrderRequest;
 import ko.dh.goot.dto.OrderResponse;
 import ko.dh.goot.dto.Product;
+import ko.dh.goot.dto.ProductDetail;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -36,14 +37,14 @@ public class OrderService {
 
 	public OrderResponse prepareOrder(OrderRequest req, String userId) {
 
-		Product product = productMapper.selectProductById(req.getProductId());
+		ProductDetail product = productMapper.selectProductDetail(req.getProductId()); // 수정해야됨
         
         if (product == null) {
             throw new IllegalArgumentException("상품 정보가 존재하지 않습니다."); // todo :: Validation 패키지 새로 만들기
         }
-        if (product.getStock() < req.getQuantity()) {
-            throw new IllegalStateException("재고가 부족합니다. 현재 재고: " + product.getStock());
-        }
+       // if (product.getStock() < req.getQuantity()) {
+       //    throw new IllegalStateException("재고가 부족합니다. 현재 재고: " + product.getStock());
+       // }
         
         int unitPrice = product.getPrice();
         int quantity = req.getQuantity();

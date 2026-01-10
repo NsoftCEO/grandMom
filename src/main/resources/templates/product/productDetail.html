@@ -9,7 +9,7 @@
 	
 </head>
 <body>
-<div th:replace="module/header :: header"></div>
+<div th:replace="~{module/header :: header}"></div>
 
 <main class="container my-5">
     <div class="row product-detail-section">
@@ -17,59 +17,80 @@
 		<div class="col-lg-6">
 		    <!-- 대표 이미지 영역 -->
 		    <div class="main-image mb-3 border position-relative">
-		        <img id="mainProductImage"
-		             th:src="${product.images != null and #lists.size(product.images) > 0} 
-		                      ? @{/product/{path}(path=${product.images[0].imagePath})} 
-		                      : @{/images/default.jpg}"
-		             class="img-fluid w-100"
-		             alt="상품 대표 이미지"
-		             style="max-height: 600px; object-fit: contain; transition: opacity 0.5s ease;">
+				<img id="mainProductImage"
+				     th:src="${#lists.isEmpty(product.images)}
+				              ? @{/images/default.jpg}
+				              : @{${product.images[0].imageUrl}}"
+				     class="img-fluid w-100"
+				     alt="상품 대표 이미지"
+				     style="max-height: 600px; object-fit: contain; transition: opacity 0.5s ease;">
 		    </div>
 
 		    <!-- 썸네일 목록 -->
-		    <div th:if="${product.images != null and #lists.size(product.images) > 1}"
-		         class="sub-images d-flex gap-2 overflow-auto">
-		        <div th:each="img, iterStat : ${product.images}"
-		             class="thumbnail border"
-		             th:attr="data-index=${iterStat.index}">
-		            <img th:src="@{/product/{path}(path=${img.imagePath})}"
-		                 alt="상품 썸네일"
-		                 style="width: 80px; height: 80px; object-fit: cover; cursor: pointer;">
-		        </div>
-		    </div>
+			<div th:if="${product.options.size() > 0}" class="sub-images d-flex gap-2 overflow-auto" id="thumbnailContainer">
+			    <div th:each="opt : ${product.options}">
+			        <div th:each="img : ${opt.images}" class="thumbnail border" 
+			             th:data-option-id="${opt.optionId}">
+			            <img th:src="@{${img.imageUrl}}"
+			                 style="width:80px;height:80px;object-fit:cover;cursor:pointer;">
+			        </div>
+			    </div>
+			</div>
+
+
+			<!-- 옵션 select -->
+			<select class="form-select form-select-sm" name="optionId" id="optionSelect">
+			    <option value="">[필수] 옵션을 선택해주세요</option>
+			    <option th:each="opt : ${product.options}"
+			            th:value="${opt.optionId}"
+			            th:text="${opt.color + ' / ' + opt.size}">
+			    </option>
+			</select>
+			
 		</div>
 
         <div class="col-lg-6 ps-lg-5">
             <h1 class="fw-bold mb-4" th:text="${product.productName}">상품명</h1>
             
-            <div class="py-3 border-top border-bottom mb-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-secondary">판매가</span>
-                    <span class="fs-3 fw-bold text-danger" 
-                          th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + '원'"></span>
-                </div>
-            </div>
+			<div class="py-3 border-top border-bottom mb-4">
+			    <!-- 할인 중 -->
+			    <div th:if="${product.onSale}">
+			        <del class="text-muted me-2"
+			             th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + '원'"></del>
+
+			        <span class="fs-3 fw-bold text-danger"
+			              th:text="${#numbers.formatDecimal(product.displayPrice, 0, 'COMMA', 0, 'POINT')} + '원'"></span>
+			    </div>
+
+			    <!-- 정상가 -->
+			    <div th:unless="${product.onSale}">
+			        <span class="fs-3 fw-bold"
+			              th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + '원'"></span>
+			    </div>
+			</div>
+
+
 
             <table class="table table-borderless table-sm mb-4">
                 <tbody>
-                    <tr>
-                        <td class="text-secondary" style="width: 100px;">카테고리</td>
-                        <td th:text="${product.category}"></td>
-                    </tr>
-                    <tr>
-                        <td class="text-secondary">재고 수량</td>
-                        <td th:text="${product.stock}"></td>
-                    </tr>
-                    <tr>
-                        <td class="text-secondary">옵션</td>
-                        <td>
-                            <select class="form-select form-select-sm">
-                                <option value="">[필수] 옵션을 선택해주세요</option>
-                                <option value="S">Small</option>
-                                <option value="M">Medium</option>
-                                </select>
-                        </td>
-                    </tr>
+					<tr>
+					    <td class="text-secondary">카테고리</td>
+					    <td th:text="${product.categoryName}">카테고리</td>
+					</tr>
+
+					<tr>
+					    <td class="text-secondary">옵션</td>
+					    <td>
+					        <select class="form-select form-select-sm" name="optionId">
+					            <option value="">[필수] 옵션을 선택해주세요</option>
+					            <option th:each="opt : ${product.options}"
+					                    th:value="${opt.optionId}"
+					                    th:text="${opt.color + ' / ' + opt.size}">
+					            </option>
+					        </select>
+					    </td>
+					</tr>
+
                 </tbody>
             </table>
             
@@ -85,7 +106,7 @@
                              <input type="number" name="quantity" value="1" min="1" th:max="${product.stock}" class="form-control form-control-sm me-2" style="width: 70px;">
                         </div>
                         <div class="text-end fw-bold">
-                            총 상품 금액: <span class="text-danger" id="totalPrice" th:text="${#numbers.formatDecimal(product.price, 0, 'COMMA', 0, 'POINT')} + '원'"></span>
+                            총 상품 금액: <span class="text-danger" id="totalPrice" th:text="${#numbers.formatInteger(product.displayPrice)} + '원'"></span>
                         </div>
                     </div>
 
