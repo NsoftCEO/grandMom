@@ -1,4 +1,4 @@
-INSERT INTO goot.product_category (category_name,use_yn,created_at,updated_at) VALUES
+INSERT INTO product_category (category_name,use_yn,created_at,updated_at) VALUES
 	 ('기타','Y','2025-10-16 22:01:50','2025-10-16 22:02:32'),
 	 ('티셔츠/블라우스','Y','2025-10-16 22:01:50','2025-10-16 22:02:01'),
 	 ('바지','Y','2025-10-16 22:01:50','2025-10-16 22:01:50'),

@@ -1,71 +1,103 @@
-document.addEventListener("DOMContentLoaded", function () {
+$(function () {
 
-    const mainImage = document.getElementById("mainProductImage");
+    const $color = $("#colorSelect");
+    const $size = $("#sizeSelect");
+    const $optionId = $("#optionId");
 
-    initThumbnailGallery();
-    initBuyBtn();
+    let selectedColor = null;
+    let selectedSize = null;
 
     // ===============================
-    // 썸네일 갤러리 초기화
+    // 색상 초기 세팅
     // ===============================
-    function initThumbnailGallery() {
-        const thumbnails = document.querySelectorAll(".thumbnail img");
-        let currentIndex = 0;
+    const colors = [...new Set(optionList.map(o => o.color))];
 
-        if (thumbnails.length === 0) return;
+    colors.forEach(color => {
+        $color.append(`<option value="${color}">${color}</option>`);
+    });
 
-        // 자동 이미지 변경 (6초)
-        setInterval(() => {
-            currentIndex = (currentIndex + 1) % thumbnails.length;
-            fadeImageTo(thumbnails[currentIndex].src);
-        }, 6000);
+    // ===============================
+    // 색상 선택
+    // ===============================
+    $color.on("change", function () {
+        selectedColor = $(this).val();
+        selectedSize = null;
+        $optionId.val("");
 
-        // 수동 클릭
-        thumbnails.forEach((thumb, index) => {
-            thumb.addEventListener("click", () => {
-                currentIndex = index;
-                fadeImageTo(thumb.src);
-            });
+        $size.prop("disabled", true);
+        $size.empty().append(`<option value="">사이즈 선택</option>`);
+
+        if (!selectedColor) return;
+
+        const sizes = optionList
+            .filter(o => o.color === selectedColor && o.stockQuantity > 0)
+            .map(o => o.size);
+
+        [...new Set(sizes)].forEach(size => {
+            $size.append(`<option value="${size}">${size}</option>`);
         });
 
-        // 페이드 효과
-        function fadeImageTo(newSrc) {
-            mainImage.style.transition = "opacity 0.3s";
-            mainImage.style.opacity = 0;
-            setTimeout(() => {
-                mainImage.src = newSrc;
-                mainImage.style.opacity = 1;
-            }, 300);
+        $size.prop("disabled", false);
+    });
+
+    // ===============================
+    // 사이즈 선택
+    // ===============================
+    $size.on("change", function () {
+        selectedSize = $(this).val();
+
+        const option = optionList.find(o =>
+            o.color === selectedColor && o.size === selectedSize
+        );
+
+        if (!option) {
+            $optionId.val("");
+            return;
         }
+
+        $optionId.val(option.optionId);
+    });
+
+    // ===============================
+    // 이미지 변경 (기존 로직 유지)
+    // ===============================
+    const $mainImage = $("#mainProductImage");
+    const $thumbs = $(".thumb-img");
+    let currentIndex = 0;
+
+    $thumbs.on("click", function () {
+        currentIndex = $thumbs.index(this);
+        changeImage($(this).attr("src"));
+    });
+
+    if ($thumbs.length > 1) {
+        setInterval(() => {
+            currentIndex = (currentIndex + 1) % $thumbs.length;
+            changeImage($thumbs.eq(currentIndex).attr("src"));
+        }, 6000);
     }
 
-    // ===============================
-    // 구매 버튼 초기화
-    // ===============================
-    function initBuyBtn() {
-        const buyBtn = document.getElementById("buyBtn");
-        if (!buyBtn) return;
-
-        buyBtn.addEventListener("click", function() {
-            const productIdInput = document.getElementById("productId");
-            const quantityInput = document.querySelector("input[name='quantity']");
-
-            if (!productIdInput || !quantityInput) return;
-
-            const productId = productIdInput.value;
-            const quantity = quantityInput.value;
-
-            if (!productId || !quantity) {
-                alert("상품 또는 수량 정보가 올바르지 않습니다.");
-                return;
-            }
-
-            console.log("구매버튼 클릭:", productId, quantity);
-
-            // 주문 페이지로 이동 (쿼리 파라미터)
-            const url = `/order/detail?productId=${productId}&quantity=${quantity}`;
-            window.location.href = url;
+    function changeImage(src) {
+        $mainImage.fadeOut(200, function () {
+            $(this).attr("src", src).fadeIn(200);
         });
     }
 
+    // ===============================
+    // 구매
+    // ===============================
+    $("#buyBtn").on("click", function () {
+        const optionId = $optionId.val();
+        const qty = $("#quantity").val();
+
+        if (!optionId) {
+            alert("색상과 사이즈를 선택해주세요.");
+            return;
+        }
+		
+		// 수정해야됨
+		const url = `/order/detail?optionId=${optionId}&quantity=${qty}`;
+		//const url = `/order/detail?productId=${productId}&quantity=${qty}`;
+		window.location.href = url;
+    });
 });

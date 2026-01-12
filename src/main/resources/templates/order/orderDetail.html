@@ -17,7 +17,7 @@
   <section class="mb-5 border p-3 rounded">
     <h4 class="mb-3">상품 정보</h4>
     <div class="d-flex align-items-center">
-      <img th:src="@{/product/{path}(path=${product.mainImage})}" alt="상품 이미지"
+      <img th:src="@{/product/{path}(path=${product.thumbnailUrl})}" alt="상품 이미지"
            class="me-3 border" style="width: 120px; height: 120px; object-fit: cover;">
       <div>
         <p class="fw-semibold mb-1" id="productName" th:data-productname="${product.productName}" th:text="${product.productName}"></p>

@@ -10,8 +10,8 @@ import lombok.Setter;
 public class ProductOption {
 
     private Long optionId;
+    private Long productId;
     private String color;
     private String size;
     private Integer stockQuantity;
-    private List<ProductImage> images; 
 }

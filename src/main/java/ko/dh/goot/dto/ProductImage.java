@@ -8,7 +8,8 @@ import lombok.Setter;
 public class ProductImage {
 
     private Long imageId;
-    private String imageUrl;
+    private Long productId;
+    private String fileName;
     private String imageType;
     private Integer sortOrder;
 }

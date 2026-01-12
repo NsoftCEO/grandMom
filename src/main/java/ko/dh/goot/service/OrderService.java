@@ -2,6 +2,7 @@ package ko.dh.goot.service;
 
 import java.util.Map;
 
+import org.apache.ibatis.javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -13,6 +14,7 @@ import ko.dh.goot.dao.OrderMapper;
 import ko.dh.goot.dao.ProductMapper;
 import ko.dh.goot.dto.Order;
 import ko.dh.goot.dto.OrderItem;
+import ko.dh.goot.dto.OrderProduct;
 import ko.dh.goot.dto.OrderRequest;
 import ko.dh.goot.dto.OrderResponse;
 import ko.dh.goot.dto.Product;
@@ -35,6 +37,24 @@ public class OrderService {
 	
 	private final ObjectMapper objectMapper;
 
+	public OrderProduct selectOrderProduct(Long optionId, int quantity) throws NotFoundException {
+
+        OrderProduct orderProduct = orderMapper.selectOrderProduct(optionId);
+
+        if (orderProduct == null) {
+            throw new NotFoundException("옵션이 존재하지 않습니다.");
+        }
+
+        if (orderProduct.getStockQuantity() < quantity) {
+            throw new IllegalArgumentException("재고가 부족합니다.");
+        }
+
+        orderProduct.setQuantity(quantity);
+        orderProduct.calculateTotalPrice();
+
+        return orderProduct;
+    }
+	
 	public OrderResponse prepareOrder(OrderRequest req, String userId) {
 
 		ProductDetail product = productMapper.selectProductDetail(req.getProductId()); // 수정해야됨
@@ -133,6 +153,8 @@ public class OrderService {
 	public int changeOrderStatus(Long orderId, String beforeStatus, String afterStatus) {
 		return orderMapper.changeOrderStatus(orderId, beforeStatus, afterStatus);
 	}
+
+	
 
 
 }

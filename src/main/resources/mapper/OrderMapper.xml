@@ -32,6 +32,25 @@
         WHERE order_id = #{orderId}
     </select>
     
+    <select id="selectOrderProduct" parameterType="long">
+		SELECT
+		    po.option_id,
+		    po.product_id,
+		    po.color,
+		    po.size,
+		    po.stock_quantity,
+		    p.product_name,
+		    p.price,
+		    pi.file_name AS thumbnail_url
+		FROM product_option po
+		JOIN product p ON p.product_id = po.product_id
+		LEFT JOIN product_image pi
+		    ON pi.product_id = p.product_id
+		   AND pi.image_type = 'MAIN'
+		WHERE po.option_id = #{optionId}
+
+    </select>
+    
 	<insert id="insertOrder" useGeneratedKeys="true" keyProperty="orderId">      
 	 	INSERT INTO orders (
 	        user_id, 

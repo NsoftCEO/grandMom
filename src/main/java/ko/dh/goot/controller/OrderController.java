@@ -3,25 +3,22 @@ package ko.dh.goot.controller;
 
 import java.util.Map;
 
+import org.apache.ibatis.javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import ko.dh.goot.dto.OrderProduct;
 import ko.dh.goot.dto.OrderRequest;
 import ko.dh.goot.dto.OrderResponse;
-import ko.dh.goot.dto.Product;
-import ko.dh.goot.dto.ProductDetail;
 import ko.dh.goot.service.OrderService;
 import ko.dh.goot.service.PortoneApiService;
 import ko.dh.goot.service.ProductService;
@@ -49,17 +46,19 @@ public class OrderController {
 	
 	 // 주문 페이지로 이동
     @GetMapping("/detail")
-    public String orderPage(@RequestParam("productId") int productId,
+    public String orderDetail(@RequestParam("optionId") long optionId,
                             @RequestParam(value = "quantity", defaultValue = "1") int quantity,
-                            Model model) {
+                            Model model) throws NotFoundException {
     	System.out.println("주문상세로 이동");
-        ProductDetail product = productService.selectProductDetail(productId); // 수정해야됨
-        model.addAttribute("product", product);
+        System.out.println("optionId = " + optionId);
+        System.out.println("quantity = " + quantity);
+        OrderProduct orderProduct = orderService.selectOrderProduct(optionId, quantity); // 수정해야됨
+        model.addAttribute("product", orderProduct);
         model.addAttribute("quantity", quantity);
         model.addAttribute("storeId", storeId);
         model.addAttribute("kakaoChannelKey", kakaoChannelKey);
-        System.out.println("product::");
-        System.out.println(product);
+        System.out.println("orderProduct::");
+        System.out.println(orderProduct);
         return "order/orderDetail"; // order.html 템플릿 렌더링
     }
 
