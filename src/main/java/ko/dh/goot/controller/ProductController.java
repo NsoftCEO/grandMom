@@ -3,6 +3,7 @@ package ko.dh.goot.controller;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.ibatis.javassist.NotFoundException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,7 +40,7 @@ public class ProductController {
 
 	// 상품 상세
     @GetMapping("/detail/{productId}")
-    public String selectProductDetail(@PathVariable("productId") int productId, Model model) {
+    public String selectProductDetail(@PathVariable("productId") long productId, Model model) throws NotFoundException {
     	System.out.println("productId::");
         System.out.println(productId);
         ProductDetail product = productService.selectProductDetail(productId);

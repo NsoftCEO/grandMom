@@ -3,6 +3,7 @@ package ko.dh.goot.service;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.ibatis.javassist.NotFoundException;
 import org.springframework.stereotype.Service;
 
 import ko.dh.goot.dao.ProductMapper;
@@ -22,9 +23,17 @@ public class ProductService {
 		return productMapper.selectProductList(param);
 	}
 
-	public ProductDetail selectProductDetail(int productId) {
+	public ProductDetail selectProductDetail(long productId) throws NotFoundException {
 
-		return productMapper.selectProductDetail(productId);
+		ProductDetail product = productMapper.selectProductDetail(productId);
+	    if (product == null) {
+	        throw new NotFoundException("상품 없음");
+	    }
+
+	    product.setOptions(productMapper.selectProductOptions(productId));
+	    product.setImages(productMapper.selectProductImages(productId));
+
+	    return product;
 	}
 
 	

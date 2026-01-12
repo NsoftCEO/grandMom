@@ -26,21 +26,24 @@
         <id property="categoryId" column="category_id"/>
         <result property="categoryName" column="category_name"/>
     </association>
-
-    <collection property="images" ofType="ko.dh.goot.dto.ProductImage">
-        <id property="imageId" column="image_id"/>
-        <result property="imageUrl" column="image_url"/>
-        <result property="imageType" column="image_type"/>
-        <result property="sortOrder" column="sort_order"/>
-    </collection>
-
-    <collection property="options" ofType="ko.dh.goot.dto.ProductOption">
-        <id property="optionId" column="option_id"/>
-        <result property="color" column="color"/>
-        <result property="size" column="size"/>
-        <result property="stockQuantity" column="stock_quantity"/>
-    </collection>
 </resultMap>
+
+<resultMap id="ProductOptionResultMap" type="ko.dh.goot.dto.ProductOption">
+    <id property="optionId" column="option_id"/>
+    <result property="productId" column="product_id"/>
+    <result property="color" column="color"/>
+    <result property="size" column="size"/>
+    <result property="stockQuantity" column="stock_quantity"/>
+</resultMap>
+
+<resultMap id="ProductImageResultMap" type="ko.dh.goot.dto.ProductImage">
+    <id property="imageId" column="image_id"/>
+    <result property="productId" column="product_id"/>
+    <result property="fileName" column="file_name"/>
+    <result property="imageType" column="image_type"/>
+    <result property="sortOrder" column="sort_order"/>
+</resultMap>
+
 
 
 
@@ -55,7 +58,7 @@
         p.status,
         p.created_at,
         IFNULL(opt.total_stock, 0) AS total_stock, /* 총 재고, 값이 null이면 0 반환 */
-        img.image_url AS main_image_url /* 대표 이미지 */
+        img.file_name AS main_image_url /* 대표 이미지 */
 
     FROM product p
 
@@ -91,52 +94,54 @@
 </select>
 
 <select id="selectProductDetail" parameterType="long" resultMap="ProductDetailResultMap">
-    SELECT
-        p.product_id,
-        p.product_name,
-        p.price,
-        p.sale_price,
-        p.description,
-        p.status,
-        p.created_at,
 
-        c.category_id,
-        c.category_name,
-
-        o.option_id,
-        o.color,
-        o.size,
-        o.stock_quantity,
-
-        i.image_id,
-        i.image_url,
-        i.image_type,
-        i.option_id AS image_option_id,
-        i.sort_order
-
-    FROM product p
-
-    LEFT JOIN product_category c
-      ON p.category_id = c.category_id
-     AND c.use_yn = 'Y'
-
-    LEFT JOIN product_option o
-      ON o.product_id = p.product_id
-
-    LEFT JOIN product_image i
-      ON i.product_id = p.product_id
-     AND i.use_yn = 'Y'
-     -- 옵션 이미지만 매핑되도록 (NULL은 대표 이미지)
-     -- OR i.option_id = o.option_id
-
-    WHERE p.product_id = #{productId}
-      AND p.status = 'ACTIVE'
-
-    ORDER BY
-        o.option_id ASC,
-        i.sort_order ASC
+	SELECT
+	    p.product_id,
+	    p.product_name,
+	    p.price,
+	    p.sale_price,
+	    p.description,
+	    p.status,
+	
+	    c.category_id,
+	    c.category_name
+	FROM product p
+	LEFT JOIN product_category c
+	  ON p.category_id = c.category_id
+	 AND c.use_yn = 'Y'
+	WHERE p.product_id = #{productId}
+	  AND p.status = 'ACTIVE';
+	  
 </select>
 
+<select id="selectProductOptions" parameterType="long" resultMap="ProductOptionResultMap">
+
+	SELECT
+	    option_id,
+	    product_id,
+	    color,
+	    size,
+	    stock_quantity
+	FROM product_option
+	WHERE product_id = #{productId}
+	ORDER BY color, size;
+  
+</select>
+
+<select id="selectProductImages" parameterType="long" resultMap="ProductImageResultMap">
+
+	SELECT
+	    image_id,
+	    product_id,
+	    file_name,
+	    image_type,
+	    sort_order
+	FROM product_image
+	WHERE product_id = #{productId}
+	  AND use_yn = 'Y'
+	ORDER BY image_type, sort_order;
+ 
+</select>
 
 
 </mapper>

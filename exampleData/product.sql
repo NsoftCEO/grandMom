@@ -1,4 +1,4 @@
-INSERT INTO goot.product
+INSERT INTO product
 (product_name, price, sale_price, description, category_id, status, created_at, updated_at)
 VALUES
 ('플라워 패턴 블라우스', 59000, 49000, '부드러운 소재의 여성 블라우스', 2, 'ACTIVE', NOW(), NOW()),

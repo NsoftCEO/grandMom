@@ -20,13 +20,12 @@ public class ProductDetail {
     private String status;
     private LocalDateTime createdAt;
     
-    /** 카테고리 */
-    //private Long categoryId;
-    //private String categoryName;
+	// 카테고리 (1:1)
     private ProductCategory category;
     
-    /** 옵션 / 이미지 */
+    // 옵션 (1:N)
     private List<ProductOption> options;
+    // 이미지 (1:N)
     private List<ProductImage> images;
 
     public Integer getDisplayPrice() {

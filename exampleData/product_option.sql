@@ -1,4 +1,4 @@
-INSERT INTO goot.product_option
+INSERT INTO product_option
 (product_id, color, size, stock_quantity, created_at, updated_at)
 VALUES
 -- 1 블라우스
