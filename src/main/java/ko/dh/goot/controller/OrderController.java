@@ -64,7 +64,8 @@ public class OrderController {
 
     @PostMapping("/prepareOrder")
     public ResponseEntity<Map<String, Object>> prepareOrder(@RequestBody OrderRequest orderRequest) {
-        String userId = "user-1234"; // 임시 사용자 ID
+        System.out.println("prepareOrder맵핑");
+    	String userId = "user-1234"; // 임시 사용자 ID
         
         try {           
         	OrderResponse response = orderService.prepareOrder(orderRequest, userId); // 💡 Service 호출: 금액 재계산, DB 저장, orderId 반환
