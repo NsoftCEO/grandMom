@@ -2,27 +2,23 @@ package ko.dh.goot.dto;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
+@ToString
 public class OrderProduct {
 
     private Long optionId;
     private Long productId;
-
-    private String productName;
+    private String productName;    
+    private int displayPrice;  
     private String color;
-    private String size;
-
-    private String thumbnailUrl;
-
-    private int price;
-    private int quantity;
+    private String size; 
     private int stockQuantity;
-
+    private String thumbnailUrl;
+    
+    private int quantity;   
     private int totalPrice;
 
-    public void calculateTotalPrice() {
-        this.totalPrice = price * quantity;
-    }
 }

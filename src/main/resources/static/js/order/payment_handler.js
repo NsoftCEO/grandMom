@@ -101,6 +101,7 @@ async function prepareOrder() {
      * 주문 데이터 구성 (중요)
      * =============================== */
     const orderData = {
+		optionId: Number($form.find('[name="optionId"]').val()),
         productId: Number($form.find('[name="productId"]').val()),
         quantity: Number($form.find('[name="quantity"]').val()),
         receiver: $form.find('[name="receiver"]').val(),
@@ -108,13 +109,8 @@ async function prepareOrder() {
         address: $form.find('[name="address"]').val(),
         memo: $form.find('[name="memo"]').val(),
         orderName: $('#productName').data('productname'),
-        clientTotalAmount: Number($('#price').data('price')),
+        clientTotalAmount: Number($('#totalPrice').data('totalPrice')),
 
-        // ✅ 옵션 스냅샷 (JSON)
-        optionInfo: {
-            color: $('#optionColor').val(),
-            size: $('#optionSize').val()
-        }
     };
 
     try {

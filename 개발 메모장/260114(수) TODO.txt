@@ -1,0 +1,2 @@
+260114(수) TODO
+prepareOrder부터 수정해야함

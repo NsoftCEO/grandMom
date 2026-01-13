@@ -14,7 +14,18 @@
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
 </resultMap>
-	
+
+<resultMap id="orderProductMap" type="OrderProduct">
+    <id property="optionId" column="option_id"/>
+    <result property="productId" column="product_id"/>
+    <result property="productName" column="product_name"/>
+    <result property="displayPrice" column="display_price"/>
+    <result property="color" column="color"/>
+    <result property="size" column="size"/>
+    <result property="stockQuantity" column="stock_quantity"/>
+    <result property="thumbnailUrl" column="thumbnail_url"/>
+</resultMap>
+
 	<select id="selectOrder" parameterType="long" resultMap="orderResultMap">
         SELECT
             order_id,
@@ -32,24 +43,28 @@
         WHERE order_id = #{orderId}
     </select>
     
-    <select id="selectOrderProduct" parameterType="long">
-		SELECT
-		    po.option_id,
-		    po.product_id,
-		    po.color,
-		    po.size,
-		    po.stock_quantity,
-		    p.product_name,
-		    p.price,
-		    pi.file_name AS thumbnail_url
-		FROM product_option po
-		JOIN product p ON p.product_id = po.product_id
-		LEFT JOIN product_image pi
-		    ON pi.product_id = p.product_id
-		   AND pi.image_type = 'MAIN'
-		WHERE po.option_id = #{optionId}
+    <select id="selectOrderProduct" parameterType="long" resultMap="orderProductMap">
+	    SELECT
+	        po.option_id,
+	        po.product_id,
+	        po.color,
+	        po.size,
+	        po.stock_quantity,
+	
+	        p.product_name,
+	        COALESCE(p.sale_price, p.price) AS display_price,
+	
+	        pi.file_name AS thumbnail_url
+	    FROM product_option po
+	    JOIN product p
+	      ON p.product_id = po.product_id
+	    LEFT JOIN product_image pi
+	      ON pi.product_id = p.product_id
+	     AND pi.image_type = 'MAIN'
+	    WHERE po.option_id = #{optionId}
+	
+	</select>
 
-    </select>
     
 	<insert id="insertOrder" useGeneratedKeys="true" keyProperty="orderId">      
 	 	INSERT INTO orders (

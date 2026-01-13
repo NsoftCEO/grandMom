@@ -44,13 +44,15 @@ public class OrderService {
         if (orderProduct == null) {
             throw new NotFoundException("옵션이 존재하지 않습니다.");
         }
-
+        System.out.println(orderProduct.toString());
+        System.out.println(orderProduct.getStockQuantity());
+        System.out.println(quantity);
         if (orderProduct.getStockQuantity() < quantity) {
             throw new IllegalArgumentException("재고가 부족합니다.");
         }
 
         orderProduct.setQuantity(quantity);
-        orderProduct.calculateTotalPrice();
+        orderProduct.setTotalPrice(orderProduct.getDisplayPrice() * quantity);
 
         return orderProduct;
     }
@@ -88,8 +90,7 @@ public class OrderService {
         }
 
         Long orderId = order.getOrderId();
-		System.out.println("optionInfo::");
-		System.out.println(req.getOptionInfo());
+        
         String optionInfoJson = null;
         if (req.getOptionInfo() != null) {
             try {

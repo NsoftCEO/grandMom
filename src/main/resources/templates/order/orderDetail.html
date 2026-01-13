@@ -22,7 +22,7 @@
       <div>
         <p class="fw-semibold mb-1" id="productName" th:data-productname="${product.productName}" th:text="${product.productName}"></p>
         <p class="mb-1">수량: <span th:text="${quantity}">1</span>개</p>
-        <p class="text-danger fw-bold fs-5" id="price" th:data-price="${product.price}" th:text="${#numbers.formatInteger(product.price * quantity, 3, 'COMMA')} + '원'"></p>
+        <p class="text-danger fw-bold fs-5" id="displayPrice" th:data-price="${product.displayPrice}" th:text="${#numbers.formatInteger(product.displayPrice, 3, 'COMMA')} + '원'"></p>
       </div>
 	  <select id="optionColor">
 	    <option value="BLACK">블랙</option>
@@ -42,6 +42,7 @@
     <h4 class="mb-3">배송 정보</h4>
 	<form id="orderForm">
 	  <input type="hidden" id="productId" name="productId" th:value="${product.productId}">
+	  <input type="hidden" name="optionId" th:value="${product.optionId}">
 	  <input type="hidden" id="quantity" name="quantity" th:value="${quantity}">
 
 	  <div class="mb-3">
@@ -64,6 +65,11 @@
 	    <input type="text" id="memo" name="memo" class="form-control">
 	  </div>
 
+	  <div class="d-flex justify-content-between align-items-center mt-4 p-3 border rounded bg-light">
+	    <span class="fw-semibold fs-5">총 결제 금액</span>
+	    <span class="fw-bold fs-4 text-danger" id="totalPrice" th:data-displayPrice="${product.totalPrice}" th:text="${#numbers.formatInteger(product.totalPrice, 3, 'COMMA')} + '원'"></span>
+	  </div>
+	  
 	  <div class="text-end mt-4">
 	    <button type="button" id="payBtn" class="btn btn-danger btn-lg">
 	      결제하기

@@ -3,43 +3,57 @@
 
 <mapper namespace="ko.dh.goot.dao.OrderItemMapper">
 
-    <resultMap id="orderItemResultMap" type="ko.dh.goot.dto.OrderItem">
-        <id property="orderItemId" column="order_item_id"/>
-        <result property="orderId" column="order_id"/>
-        <result property="productId" column="product_id"/>
-        <result property="productName" column="product_name"/>
-        <result property="productPrice" column="product_price"/>
-        <result property="quantity" column="quantity"/>
-        <result property="totalPrice" column="total_price"/>
-        <result property="optionInfo" column="option_info"/>
-        <result property="refundStatus" column="refund_status"/>
-        <result property="createdAt" column="created_at"/>
-        <result property="updatedAt" column="updated_at"/>
-    </resultMap>
+ <resultMap id="orderItemResultMap" type="ko.dh.goot.dto.OrderItem">
+    <id property="orderItemId" column="order_item_id"/>
+
+    <result property="orderId" column="order_id"/>
+    <result property="productId" column="product_id"/>
+    <result property="optionId" column="option_id"/>
+
+    <result property="productName" column="product_name"/>
+    <result property="unitPrice" column="unit_price"/>
+
+    <result property="quantity" column="quantity"/>
+    <result property="totalPrice" column="total_price"/>
+
+    <result property="color" column="color"/>
+    <result property="size" column="size"/>
+
+    <result property="optionInfo" column="option_info"/>
+    <result property="refundStatus" column="refund_status"/>
+
+    <result property="createdAt" column="created_at"/>
+</resultMap>
 
 
-    <insert id="insertOrderItem" parameterType="ko.dh.goot.dto.OrderItem"
+<insert id="insertOrderItem" parameterType="ko.dh.goot.dto.OrderItem"
             useGeneratedKeys="true" keyProperty="orderItemId">
-            
+
         INSERT INTO order_item (
             order_id,
             product_id,
+            option_id,
             product_name,
-            product_price,
+            unit_price,
             quantity,
             total_price,
+            color,
+            size,
             option_info,
             refund_status
         ) VALUES (
             #{orderId},
             #{productId},
+            #{optionId},
             #{productName},
-            #{productPrice},
+            #{unitPrice},
             #{quantity},
             #{totalPrice},
+            #{color},
+            #{size},
             #{optionInfo},
             #{refundStatus}
         )
-    </insert>
+</insert>
 
 </mapper>
