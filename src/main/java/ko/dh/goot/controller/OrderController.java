@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import ko.dh.goot.dto.OrderProduct;
+import ko.dh.goot.dto.OrderProductView;
 import ko.dh.goot.dto.OrderRequest;
 import ko.dh.goot.dto.OrderResponse;
 import ko.dh.goot.service.OrderService;
@@ -52,7 +52,7 @@ public class OrderController {
     	System.out.println("주문상세로 이동");
         System.out.println("optionId = " + optionId);
         System.out.println("quantity = " + quantity);
-        OrderProduct orderProduct = orderService.selectOrderProduct(optionId, quantity); // 수정해야됨
+        OrderProductView orderProduct = orderService.selectOrderProduct(optionId, quantity); // 수정해야됨
         model.addAttribute("product", orderProduct);
         model.addAttribute("quantity", quantity);
         model.addAttribute("storeId", storeId);

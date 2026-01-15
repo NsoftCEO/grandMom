@@ -65,6 +65,25 @@
 	
 	</select>
 
+	<select id="selectProductOptionForOrder"
+	        parameterType="long"
+	        resultType="ko.dh.goot.dto.ProductOptionForOrder">
+	
+	    SELECT
+	        po.option_id,
+	        po.product_id,
+	        po.color,
+	        po.size,
+	        po.stock_quantity,
+	
+	        p.product_name,
+	        COALESCE(p.sale_price, p.price) AS unit_price
+	    FROM product_option po
+	    JOIN product p
+	      ON p.product_id = po.product_id
+	    WHERE po.option_id = #{optionId}
+	
+	</select>
     
 	<insert id="insertOrder" useGeneratedKeys="true" keyProperty="orderId">      
 	 	INSERT INTO orders (
