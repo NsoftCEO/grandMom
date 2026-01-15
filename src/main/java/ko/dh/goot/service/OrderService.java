@@ -12,13 +12,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import ko.dh.goot.dao.OrderItemMapper;
 import ko.dh.goot.dao.OrderMapper;
 import ko.dh.goot.dao.ProductMapper;
+import ko.dh.goot.dao.ProductOptionMapper;
 import ko.dh.goot.dto.Order;
 import ko.dh.goot.dto.OrderItem;
 import ko.dh.goot.dto.OrderProduct;
+import ko.dh.goot.dto.OrderProductView;
 import ko.dh.goot.dto.OrderRequest;
 import ko.dh.goot.dto.OrderResponse;
-import ko.dh.goot.dto.Product;
 import ko.dh.goot.dto.ProductDetail;
+import ko.dh.goot.dto.ProductOptionForOrder;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -34,12 +36,13 @@ public class OrderService {
 	private final ProductMapper productMapper;	
 	private final OrderMapper orderMapper;
 	private final OrderItemMapper orderItemMapper;
+	private final ProductOptionMapper productOptionMapper;
 	
 	private final ObjectMapper objectMapper;
 
-	public OrderProduct selectOrderProduct(Long optionId, int quantity) throws NotFoundException {
+	public OrderProductView selectOrderProduct(Long optionId, int quantity) throws NotFoundException {
 
-        OrderProduct orderProduct = orderMapper.selectOrderProduct(optionId);
+		OrderProductView orderProduct = orderMapper.selectOrderProduct(optionId);
 
         if (orderProduct == null) {
             throw new NotFoundException("옵션이 존재하지 않습니다.");
@@ -59,7 +62,7 @@ public class OrderService {
 	
 	public OrderResponse prepareOrder(OrderRequest req, String userId) {
 
-		ProductDetail product = productMapper.selectProductDetail(req.getProductId()); // 수정해야됨
+		ProductOptionForOrder product = productOptionMapper.selectProductOptionDetail(req.getOptionId());
         
         if (product == null) {
             throw new IllegalArgumentException("상품 정보가 존재하지 않습니다."); // todo :: Validation 패키지 새로 만들기
@@ -68,7 +71,7 @@ public class OrderService {
        //    throw new IllegalStateException("재고가 부족합니다. 현재 재고: " + product.getStock());
        // }
         
-        int unitPrice = product.getPrice();
+        int unitPrice = product.getUnitPrice();
         int quantity = req.getQuantity();
         int serverCalculatedAmount = unitPrice * quantity;
         
