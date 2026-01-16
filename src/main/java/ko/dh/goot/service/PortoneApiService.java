@@ -1,11 +1,13 @@
 package ko.dh.goot.service;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.http.*;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -13,10 +15,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import ko.dh.goot.dto.PortOnePaymentResponse;
 import lombok.extern.log4j.Log4j2;
-
-import java.util.Map;
-import java.time.OffsetDateTime;
-import java.util.HashMap;
 
 /**
  * PortOne API 호출을 담당하는 서비스입니다. (V2 API 규격 적용)

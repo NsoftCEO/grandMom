@@ -15,14 +15,14 @@
         <result property="updatedAt" column="updated_at"/>
 </resultMap>
 
-<resultMap id="orderProductMap" type="OrderProduct">
+<resultMap id="orderProductMap" type="OrderProductView">
     <id property="optionId" column="option_id"/>
     <result property="productId" column="product_id"/>
     <result property="productName" column="product_name"/>
     <result property="displayPrice" column="display_price"/>
-    <result property="color" column="color"/>
-    <result property="size" column="size"/>
     <result property="stockQuantity" column="stock_quantity"/>
+    <result property="color" column="color"/>
+    <result property="size" column="size"/> 
     <result property="thumbnailUrl" column="thumbnail_url"/>
 </resultMap>
 

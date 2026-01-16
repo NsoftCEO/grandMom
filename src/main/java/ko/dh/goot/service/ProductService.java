@@ -7,7 +7,6 @@ import org.apache.ibatis.javassist.NotFoundException;
 import org.springframework.stereotype.Service;
 
 import ko.dh.goot.dao.ProductMapper;
-import ko.dh.goot.dto.Product;
 import ko.dh.goot.dto.ProductDetail;
 import ko.dh.goot.dto.ProductListItem;
 import lombok.RequiredArgsConstructor;
