@@ -1,0 +1,26 @@
+Base + UseCase DTO 구조
+
+@Getter
+public class ProductOptionBase {
+
+    private Long optionId;
+    private Long productId;
+
+    private String color;
+    private String size;
+}
+
+@Getter
+public class OrderProductView extends ProductOptionBase {
+
+    private String productName;
+    private int displayPrice;
+    private String thumbnailUrl;
+}
+
+@Getter
+public class OrderProduct extends ProductOptionBase {
+
+    private int unitPrice;
+    private int stockQuantity;
+}

@@ -1,7 +1,0 @@
-직렬화 : 객체 -> JSON
-역직렬화 : JSON -> 객체
-
-JSON 직렬화는 객체의 필드가 아니라 getter 메소드를 기준으로 이루어짐
-따라서 dto에 필드가 없어도 getter가 있으면 해당 값을 JSON 필드로 직렬화.
-HTTP Body에는 문자열(JSON)만 존재하고 애초에 객체 개념이 없음.
-받은 JSON 문자열을 js객체로 JSON.parse(jsonString); 가능  // JSON 문자열 → JS 객체

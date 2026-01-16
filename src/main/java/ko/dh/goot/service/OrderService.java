@@ -67,9 +67,10 @@ public class OrderService {
         if (product == null) {
             throw new IllegalArgumentException("상품 정보가 존재하지 않습니다."); // todo :: Validation 패키지 새로 만들기
         }
-       // if (product.getStock() < req.getQuantity()) {
-       //    throw new IllegalStateException("재고가 부족합니다. 현재 재고: " + product.getStock());
-       // }
+        
+        if (product.getStockQuantity() < req.getQuantity()) {
+           throw new IllegalStateException("재고가 부족합니다. 현재 재고: " + product.getStockQuantity());
+        }
         
         int unitPrice = product.getUnitPrice();
         int quantity = req.getQuantity();
@@ -93,7 +94,7 @@ public class OrderService {
         }
 
         Long orderId = order.getOrderId();
-        
+        System.out.println("111");
         String optionInfoJson = null;
         if (req.getOptionInfo() != null) {
             try {
@@ -102,24 +103,34 @@ public class OrderService {
                 throw new IllegalStateException("옵션 정보 직렬화 실패", e);
             }
         }
-        
+        System.out.println("222");
         /* ===== 4. order_item 스냅샷 저장 (⭐ 핵심) ===== */
         OrderItem orderItem = OrderItem.builder()
             .orderId(orderId)
             .productId(product.getProductId())
             .productName(product.getProductName())
-            .productPrice(unitPrice)
+            .optionId(product.getOptionId())
+            .unitPrice(unitPrice)
             .quantity(quantity)
             .totalPrice(serverCalculatedAmount)
             .optionInfo(optionInfoJson) // JSON 그대로 저장
             .refundStatus("NONE")
             .build();
+        System.out.println("333");
+        try {
+	        int orderIemInsertCount = orderItemMapper.insertOrderItem(orderItem);
 
-        int orderIemInsertCount = orderItemMapper.insertOrderItem(orderItem);
+	        if (orderIemInsertCount != 1) {
+	        	System.out.println("order_item 저장 실패 오류");
+	            throw new IllegalStateException("order_item 저장 실패");
+	        }
         
-        if (orderIemInsertCount != 1) {
-            throw new IllegalStateException("order_item 저장 실패");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
         }
+        
+        
         
 		return new OrderResponse(order.getOrderId(), serverCalculatedAmount);
 	}

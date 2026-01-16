@@ -1,20 +1,26 @@
 package ko.dh.goot.dto;
 
+import java.time.LocalDateTime;
+
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+@Builder
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
 public class OrderItem {
 
     private Long orderItemId;
 
     private Long orderId;
     private Long productId;
+    private Long optionId;
 
     private String productName;
-    private int productPrice;
+    private int unitPrice; 
     private int quantity;
     private int totalPrice;
 
@@ -29,24 +35,4 @@ public class OrderItem {
      */
     private String refundStatus;
 
-    @Builder
-    public OrderItem(
-            Long orderId,
-            Long productId,
-            String productName,
-            int productPrice,
-            int quantity,
-            int totalPrice,
-            String optionInfo,
-            String refundStatus
-    ) {
-        this.orderId = orderId;
-        this.productId = productId;
-        this.productName = productName;
-        this.productPrice = productPrice;
-        this.quantity = quantity;
-        this.totalPrice = totalPrice;
-        this.optionInfo = optionInfo;
-        this.refundStatus = refundStatus;
-    }
 }
