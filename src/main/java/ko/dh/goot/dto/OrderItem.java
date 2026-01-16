@@ -24,6 +24,8 @@ public class OrderItem {
     private int quantity;
     private int totalPrice;
 
+    private String color;
+    private String size;
     /**
      * JSON 문자열 그대로 저장
      * 예: {"color":"black","size":"L"}

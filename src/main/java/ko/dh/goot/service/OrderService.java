@@ -113,6 +113,8 @@ public class OrderService {
             .unitPrice(unitPrice)
             .quantity(quantity)
             .totalPrice(serverCalculatedAmount)
+            .color(product.getColor())
+            .size(product.getSize())
             .optionInfo(optionInfoJson) // JSON 그대로 저장
             .refundStatus("NONE")
             .build();
