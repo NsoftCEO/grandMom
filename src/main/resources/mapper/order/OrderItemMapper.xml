@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ko.dh.goot.order.dao.OrderItemMapper">
+
+ <resultMap id="orderItemResultMap" type="ko.dh.goot.order.dto.OrderItem">
+    <id property="orderItemId" column="order_item_id"/>
+
+    <result property="orderId" column="order_id"/>
+    <result property="productId" column="product_id"/>
+    <result property="optionId" column="option_id"/>
+
+    <result property="productName" column="product_name"/>
+    <result property="unitPrice" column="unit_price"/>
+
+    <result property="quantity" column="quantity"/>
+    <result property="totalPrice" column="total_price"/>
+
+    <result property="color" column="color"/>
+    <result property="size" column="size"/>
+
+    <result property="optionInfo" column="option_info"/>
+    <result property="refundStatus" column="refund_status"/>
+
+    <result property="createdAt" column="created_at"/>
+</resultMap>
+
+
+<insert id="insertOrderItem" parameterType="ko.dh.goot.order.dto.OrderItem"
+            useGeneratedKeys="true" keyProperty="orderItemId">
+
+        INSERT INTO order_item (
+            order_id,
+            product_id,
+            option_id,
+            product_name,
+            unit_price,
+            quantity,
+            total_price,
+            color,
+            size,
+            option_info,
+            refund_status
+        ) VALUES (
+            #{orderId},
+            #{productId},
+            #{optionId},
+            #{productName},
+            #{unitPrice},
+            #{quantity},
+            #{totalPrice},
+            #{color},
+            #{size},
+            #{optionInfo},
+            #{refundStatus}
+        )
+</insert>
+
+</mapper>

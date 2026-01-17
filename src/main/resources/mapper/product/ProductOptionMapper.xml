@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="ko.dh.goot.product.dao.ProductOptionMapper">
+
+<resultMap id="productOptionForOrderMap" type="ProductOptionForOrder">
+<id property="optionId" column="option_id"/>
+    <result property="productId" column="product_id"/>
+    <result property="productName" column="product_name"/>
+    <result property="unitPrice" column="unit_price"/>
+    <result property="stockQuantity" column="stock_quantity"/>
+	<result property="color" column="color"/>
+    <result property="size" column="size"/>   
+
+</resultMap>
+
+<select id="selectProductOptionDetail"
+        parameterType="long"
+        resultMap="productOptionForOrderMap">
+
+    SELECT
+        po.option_id,
+        po.product_id,
+        po.color,
+        po.size,
+        po.stock_quantity,
+
+        p.product_name,
+        COALESCE(p.sale_price, p.price) AS unit_price
+
+    FROM product_option po
+    JOIN product p ON p.product_id = po.product_id
+    WHERE po.option_id = #{optionId}
+
+</select>
+
+
+	<update id="decreaseStock">
+        UPDATE product_option
+        SET stock_quantity = stock_quantity - #{quantity}
+        WHERE option_id = #{optionId}
+          AND stock_quantity >= #{quantity}
+    </update>
+    
+</mapper>

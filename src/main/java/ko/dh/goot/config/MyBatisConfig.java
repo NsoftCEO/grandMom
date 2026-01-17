@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 @Configuration
-@MapperScan(basePackages = "ko.dh.goot.dao")
+@MapperScan(basePackages = "ko.dh.goot")
 public class MyBatisConfig {
 	@Bean
     public SqlSessionFactory sqlSessionFactory(DataSource dataSource) throws Exception {
@@ -20,10 +20,10 @@ public class MyBatisConfig {
         // Mapper XML 위치 지정
         sessionFactory.setMapperLocations(
                 new PathMatchingResourcePatternResolver()
-                        .getResources("classpath:mapper/*.xml")
+                        .getResources("classpath:mapper/**/*.xml")
         );
         
-        sessionFactory.setTypeAliasesPackage("ko.dh.goot.dto");
+        sessionFactory.setTypeAliasesPackage("ko.dh.goot");
         
         return sessionFactory.getObject();
     }
