@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="ko.dh.goot.order.dao.OrderMapper">
+<resultMap id="orderResultMap" type="ko.dh.goot.order.dto.Order">
+        <id property="orderId" column="order_id"/>  
+        <result property="userId" column="user_id"/>
+        <result property="orderName" column="order_name"/>
+        <result property="totalAmount" column="total_amount"/>
+        <result property="orderStatus" column="order_status"/>
+        <result property="receiverName" column="receiver_name"/>
+        <result property="receiverPhone" column="receiver_phone"/>
+        <result property="receiverAddress" column="receiver_address"/>
+        <result property="deliveryMemo" column="delivery_memo"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+</resultMap>
+
+<resultMap id="orderProductMap" type="OrderProductView">
+    <id property="optionId" column="option_id"/>
+    <result property="productId" column="product_id"/>
+    <result property="productName" column="product_name"/>
+    <result property="displayPrice" column="display_price"/>
+    <result property="stockQuantity" column="stock_quantity"/>
+    <result property="color" column="color"/>
+    <result property="size" column="size"/> 
+    <result property="thumbnailUrl" column="thumbnail_url"/>
+</resultMap>
+
+	<select id="selectOrder" parameterType="long" resultMap="orderResultMap">
+        SELECT
+            order_id,
+            user_id,
+            order_name,
+            total_amount,
+            order_status,
+            receiver_name,
+            receiver_phone,
+            receiver_address,
+            delivery_memo,
+            created_at,
+            updated_at
+        FROM orders
+        WHERE order_id = #{orderId}
+    </select>
+    
+    <select id="selectOrderProduct" parameterType="long" resultMap="orderProductMap">
+	    SELECT
+	        po.option_id,
+	        po.product_id,
+	        po.color,
+	        po.size,
+	        po.stock_quantity,
+	
+	        p.product_name,
+	        COALESCE(p.sale_price, p.price) AS display_price,
+	
+	        pi.file_name AS thumbnail_url
+	    FROM product_option po
+	    JOIN product p
+	      ON p.product_id = po.product_id
+	    LEFT JOIN product_image pi
+	      ON pi.product_id = p.product_id
+	     AND pi.image_type = 'MAIN'
+	    WHERE po.option_id = #{optionId}
+	
+	</select>
+
+	<select id="selectProductOptionForOrder"
+	        parameterType="long"
+	        resultType="ko.dh.goot.order.dto.ProductOptionForOrder">
+	
+	    SELECT
+	        po.option_id,
+	        po.product_id,
+	        po.color,
+	        po.size,
+	        po.stock_quantity,
+	
+	        p.product_name,
+	        COALESCE(p.sale_price, p.price) AS unit_price
+	    FROM product_option po
+	    JOIN product p
+	      ON p.product_id = po.product_id
+	    WHERE po.option_id = #{optionId}
+	
+	</select>
+    
+	<insert id="insertOrder" useGeneratedKeys="true" keyProperty="orderId">      
+	 	INSERT INTO orders (
+	        user_id, 
+	        order_name, 
+	        total_amount, 
+	        order_status, 
+	        receiver_name, 
+	        receiver_phone, 
+	        receiver_address, 
+	        delivery_memo
+	        ) VALUES (
+	        #{userId}, 
+	        #{orderName}, 
+	        #{totalAmount}, 
+	        #{orderStatus}, 
+	        #{receiverName}, 
+	        #{receiverPhone}, 
+	        #{receiverAddress}, 
+	        #{deliveryMemo}
+	    )
+	</insert>
+
+	<select id="selectOrderExpectedAmount" parameterType="long" resultType="int">       
+        SELECT 
+            total_amount
+        FROM 
+            orders
+        WHERE 
+            order_id = #{orderId}
+            <!-- 💡 [선택] 추가 보안: 주문 상태가 '결제 대기'일 때만 조회하도록 제한할 수 있습니다. -->
+            <!-- AND order_status = 'PAYMENT_READY' --> 
+            
+    </select>
+    
+    <update id="changeOrderStatus">
+	    UPDATE orders
+	    SET
+	        order_status = #{afterStatus},
+	        updated_at = NOW()
+	    WHERE
+	        order_id = #{orderId}
+	        AND order_status = #{beforeStatus}
+	</update>
+    
+    
+</mapper>
