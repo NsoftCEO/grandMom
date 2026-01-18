@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import ko.dh.goot.common.exception.BusinessException;
+import ko.dh.goot.common.exception.ErrorCode;
 import ko.dh.goot.order.dao.OrderItemMapper;
 import ko.dh.goot.order.dao.OrderMapper;
 import ko.dh.goot.order.dto.Order;
@@ -33,11 +35,9 @@ public class OrderService {
     @Value("${portone.channel-key}")
     private String channelKey;
 	
-	private final ProductMapper productMapper;	
 	private final OrderMapper orderMapper;
 	private final OrderItemMapper orderItemMapper;
-	private final ProductOptionMapper productOptionMapper;
-	
+	private final ProductOptionMapper productOptionMapper;	
 	private final ObjectMapper objectMapper;
 
 	public OrderProductView selectOrderProduct(Long optionId, int quantity) throws NotFoundException {
@@ -45,13 +45,11 @@ public class OrderService {
 		OrderProductView orderProduct = orderMapper.selectOrderProduct(optionId);
 
         if (orderProduct == null) {
-            throw new NotFoundException("옵션이 존재하지 않습니다.");
-        }
-        System.out.println(orderProduct.toString());
-        System.out.println(orderProduct.getStockQuantity());
-        System.out.println(quantity);
+        	throw new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND);
+        } 
+        
         if (orderProduct.getStockQuantity() < quantity) {
-            throw new IllegalArgumentException("재고가 부족합니다.");
+        	throw new BusinessException(ErrorCode.OUT_OF_STOCK);
         }
 
         orderProduct.setQuantity(quantity);
@@ -65,11 +63,13 @@ public class OrderService {
 		ProductOptionForOrder product = productOptionMapper.selectProductOptionDetail(req.getOptionId());
         
         if (product == null) {
-            throw new IllegalArgumentException("상품 정보가 존재하지 않습니다."); // todo :: Validation 패키지 새로 만들기
+        	throw new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND); // todo :: Validation 패키지 새로 만들기
         }
         
         if (product.getStockQuantity() < req.getQuantity()) {
-           throw new IllegalStateException("재고가 부족합니다. 현재 재고: " + product.getStockQuantity());
+        	throw new BusinessException(ErrorCode.OUT_OF_STOCK,
+                    "현재 재고: " + product.getStockQuantity()
+            );
         }
         
         int unitPrice = product.getUnitPrice();
@@ -89,22 +89,25 @@ public class OrderService {
                 .build();
         
         int orderInsertCount = orderMapper.insertOrder(order);
+        
         if (orderInsertCount != 1) {
-            throw new IllegalStateException("주문 저장 실패");
+        	throw new BusinessException(ErrorCode.ORDER_CREATE_FAILED);
+        }
+        
+        Long orderId = order.getOrderId();
+
+        String optionInfoJson = null;
+        try {
+            if (req.getOptionInfo() != null) {
+                optionInfoJson = objectMapper.writeValueAsString(req.getOptionInfo());
+            }
+        } catch (Exception e) {
+            throw new BusinessException(
+                    ErrorCode.INTERNAL_SERVER_ERROR,
+                    "옵션 정보 직렬화 실패"
+            );
         }
 
-        Long orderId = order.getOrderId();
-        System.out.println("111");
-        String optionInfoJson = null;
-        if (req.getOptionInfo() != null) {
-            try {
-                optionInfoJson = objectMapper.writeValueAsString(req.getOptionInfo());
-            } catch (JsonProcessingException e) {
-                throw new IllegalStateException("옵션 정보 직렬화 실패", e);
-            }
-        }
-        System.out.println("222");
-        /* ===== 4. order_item 스냅샷 저장 (⭐ 핵심) ===== */
         OrderItem orderItem = OrderItem.builder()
             .orderId(orderId)
             .productId(product.getProductId())
@@ -118,23 +121,14 @@ public class OrderService {
             .optionInfo(optionInfoJson) // JSON 그대로 저장
             .refundStatus("NONE")
             .build();
-        System.out.println("333");
-        try {
-	        int orderIemInsertCount = orderItemMapper.insertOrderItem(orderItem);
 
-	        if (orderIemInsertCount != 1) {
-	        	System.out.println("order_item 저장 실패 오류");
-	            throw new IllegalStateException("order_item 저장 실패");
-	        }
+        int orderItemInsertCount = orderItemMapper.insertOrderItem(orderItem);
         
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
+        if (orderItemInsertCount != 1) {
+            throw new BusinessException(ErrorCode.ORDER_CREATE_FAILED);
         }
-        
-        
-        
-		return new OrderResponse(order.getOrderId(), serverCalculatedAmount);
+ 
+		return new OrderResponse(orderId, serverCalculatedAmount);
 	}
 	
 	/* ===============================
@@ -145,25 +139,23 @@ public class OrderService {
         Order order = orderMapper.selectOrder(orderId);
 
         if (order == null) {
-            throw new IllegalArgumentException("주문 없음");
+        	throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
         }
 
         if (!"PAYMENT_READY".equals(order.getOrderStatus())) {
-            throw new IllegalStateException("이미 처리된 주문");
+        	throw new BusinessException(ErrorCode.ORDER_INVALID_STATUS);
         }
 
-        String orderIdStr = String.valueOf(orderId);
-        
         return Map.of(
-            "storeId", storeId,
-            "channelKey", channelKey,
-            "paymentId", "payment-" + java.util.UUID.randomUUID(),
-            "orderName", order.getOrderName(),
-            "totalAmount", order.getTotalAmount(),
-            "currency", "KRW",
-            "payMethod", "EASY_PAY",
-            "isTestChannel", true,
-            "customData", Map.of("orderId", orderIdStr)
+                "storeId", storeId,
+                "channelKey", channelKey,
+                "paymentId", "payment-" + java.util.UUID.randomUUID(),
+                "orderName", order.getOrderName(),
+                "totalAmount", order.getTotalAmount(),
+                "currency", "KRW",
+                "payMethod", "EASY_PAY",
+                "isTestChannel", true,
+                "customData", Map.of("orderId", orderId.toString())
         );
     }
 

@@ -7,8 +7,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import ko.dh.goot.common.exception.BusinessException;
+import ko.dh.goot.common.exception.ErrorCode;
+import ko.dh.goot.order.dao.OrderItemMapper;
 import ko.dh.goot.order.dao.OrderMapper;
 import ko.dh.goot.order.dto.Order;
+import ko.dh.goot.order.dto.OrderItem;
 import ko.dh.goot.order.service.OrderService;
 import ko.dh.goot.payment.dao.PaymentMapper;
 import ko.dh.goot.payment.dto.PortOnePaymentResponse;
@@ -28,6 +32,7 @@ public class PaymentService {
 	private final PortoneApiService portoneApiService;	
     private final PaymentMapper paymentMapper;
     private final OrderMapper orderMapper;
+    private final OrderItemMapper orderItemMapper;
     private final ObjectMapper objectMapper;
     
     
@@ -81,51 +86,61 @@ public class PaymentService {
         
 	}
 
+	// todo: portone 외부연동은 트랜잭션밖으로 빼야됨
 	@Transactional
     public void confirmPaymentAndCompleteOrder(String paymentId) {
 
         /* ===== 1. 멱등성 ===== */
         if (paymentMapper.existsByPaymentId(paymentId) > 0) {
-            log.info("이미 존재하는 주문번호. paymentId={}", paymentId);
+        	log.info("이미 처리된 결제. paymentId={}", paymentId);
             return;
         }
 
-        /* ===== 2. PG 결제 조회 ===== */
+        /* ===== 2. PG 결제 조회(외부 연동) ===== */
         PortOnePaymentResponse portonePaymentDetails = portoneApiService.portonePaymentDetails(paymentId);
-
+        
+        if (portonePaymentDetails == null) {
+            throw new BusinessException(ErrorCode.PG_PAYMENT_NOT_FOUND);
+        }
   
         Long orderId = portonePaymentDetails.getOrderId();
 
         /* ===== 3. 주문 조회 ===== */
         Order order = orderMapper.selectOrder(orderId);
         if (order == null) {
-            throw new IllegalStateException("주문 없음. orderId=" + orderId);
+        	throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
         }
 
         /* ===== 4. 금액 검증 ===== */
         Long paidAmount = portonePaymentDetails.getAmount().getTotal();
         if (!paidAmount.equals(Long.valueOf(order.getTotalAmount()))) {
-            throw new IllegalStateException(
-                "결제금액 불일치. order=" + order.getTotalAmount()
-                    + ", paid=" + paidAmount
-            );
+        	throw new BusinessException(
+                    ErrorCode.PAYMENT_AMOUNT_MISMATCH,
+                    "주문금액=" + order.getTotalAmount() + ", 결제금액=" + paidAmount
+                );
         }
 
         // ===== 5. 결제 저장 =====
-        //paymentMapper.insertPayment(paymentId, orderId, paidAmount);
         paymentMapper.insertPayment(portonePaymentDetails);
         
-        // ===== 6. 재고 차감 =====
+        /* ===== 6. 주문상품 조회 (단일 옵션) ===== */
+        OrderItem orderItem = orderItemMapper.selectOrderItemByOrderId(orderId);
+        if (orderItem == null) {
+            throw new BusinessException(ErrorCode.ORDER_ITEM_NOT_FOUND);
+        }
+        System.out.println("orderItem:::::");
+        System.out.println(orderItem.toString());
+        // ===== 7. 재고 차감 =====
         // decreaseStock(Long optionId, int orderQuantity)
-        productOptionService.decreaseStock(orderId, 5);
-        
-        System.out.println("getStatus::");
-        System.out.println(portonePaymentDetails.getStatus());
-        // ===== 7. 주문 상태 변경 =====
+        productOptionService.decreaseStock(orderItem.getOptionId(), orderItem.getQuantity());
+
+        // ===== 8. 주문 상태 변경 =====
         int resultCount = orderService.changeOrderStatus(orderId,"PAYMENT_READY", portonePaymentDetails.getStatus());
         
         if(resultCount != 1) {
-        	throw new IllegalStateException("주문상태 변경 오류 orderId=" + orderId);
+        	throw new BusinessException(ErrorCode.ORDER_STATUS_UPDATE_FAILED,
+                    "orderId=" + orderId
+                );
         }
 
         

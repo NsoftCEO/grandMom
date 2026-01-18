@@ -6,9 +6,11 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Builder
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderItem {
@@ -36,5 +38,6 @@ public class OrderItem {
      * NONE, REQUESTED, PARTIAL, REFUNDED, FAILED
      */
     private String refundStatus;
+    private LocalDateTime createdAt;
 
 }
