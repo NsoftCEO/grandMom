@@ -26,6 +26,31 @@
 </resultMap>
 
 
+<select id="selectOrderItemByOrderId" parameterType="long" resultMap="orderItemResultMap">
+
+    SELECT
+        oi.order_item_id,
+        oi.order_id,
+        oi.product_id,
+        oi.option_id,
+        oi.unit_price,
+        oi.quantity,
+        oi.total_price,
+
+        p.product_name,
+        po.color,
+        po.size,
+        oi.option_info,
+        oi.refund_status,
+        oi.created_at
+    FROM order_item oi
+    JOIN product p ON oi.product_id = p.product_id
+    JOIN product_option po ON oi.option_id = po.option_id
+    WHERE oi.order_id = #{orderId}
+
+</select>
+
+
 <insert id="insertOrderItem" parameterType="ko.dh.goot.order.dto.OrderItem"
             useGeneratedKeys="true" keyProperty="orderItemId">
 

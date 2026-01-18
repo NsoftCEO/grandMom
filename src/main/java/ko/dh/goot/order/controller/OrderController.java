@@ -37,21 +37,15 @@ public class OrderController {
 	@Value("${portone.channel-key}")
     private String kakaoChannelKey;
 
-	private final ProductService productService;
 	private final OrderService orderService;
-	private final WebhookService webhookService;
-	private final PortoneApiService portoneApiService;
 
-	private final ObjectMapper objectMapper;
 	
 	 // 주문 페이지로 이동
     @GetMapping("/detail")
     public String orderDetail(@RequestParam("optionId") long optionId,
                             @RequestParam(value = "quantity", defaultValue = "1") int quantity,
                             Model model) throws NotFoundException {
-    	System.out.println("주문상세로 이동");
-        System.out.println("optionId = " + optionId);
-        System.out.println("quantity = " + quantity);
+    	
         OrderProductView orderProduct = orderService.selectOrderProduct(optionId, quantity); // 수정해야됨
         model.addAttribute("product", orderProduct);
         model.addAttribute("quantity", quantity);
@@ -63,34 +57,21 @@ public class OrderController {
     }
 
     @PostMapping("/prepareOrder")
-    public ResponseEntity<Map<String, Object>> prepareOrder(@RequestBody OrderRequest orderRequest) {
+    public ResponseEntity<OrderResponse> prepareOrder(@RequestBody OrderRequest orderRequest) {
         System.out.println("prepareOrder맵핑");
     	String userId = "user-1234"; // 임시 사용자 ID
-        
-        try {           
-        	OrderResponse response = orderService.prepareOrder(orderRequest, userId); // 💡 Service 호출: 금액 재계산, DB 저장, orderId 반환
+       
+        OrderResponse response = orderService.prepareOrder(orderRequest, userId); // 💡 Service 호출: 금액 재계산, DB 저장, orderId 반환
 
-        	return ResponseEntity.ok(
-                    Map.of("orderId", response.getOrderId())
-                );
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            // 재고 부족, 상품 없음 등의 비즈니스 로직 에러
-            return ResponseEntity.badRequest().body(Map.of(
-                "message", e.getMessage()
-            ));
-        } catch (Exception e) {
-            // 기타 서버 에러
-            return ResponseEntity.internalServerError().body(Map.of(
-                "message", "주문 생성 중 알 수 없는 서버 오류가 발생했습니다."
-            ));
-        }
+        return ResponseEntity.ok(response);
+
     }
     
     /* ===============================
      * 2️. 결제 파라미터 생성
      * =============================== */
     @PostMapping("/createPaymentParams")
-    public ResponseEntity<?> requestPayment(@RequestBody Map<String, Long> body) {
+    public ResponseEntity<Map<String, Object>> requestPayment(@RequestBody Map<String, Long> body) {
         Long orderId = body.get("orderId");
 
         Map<String, Object> paymentParams = orderService.createPaymentParams(orderId);
