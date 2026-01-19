@@ -107,36 +107,4 @@ public class WebhookService {
         }
     }
     
-    /*
-    WebhookPayload로 대체
-    public Map<String, Object> extractWebhookData(String payload){
-    	Map<String, Object> parsedPayload;
-    	try {
-            parsedPayload = objectMapper.readValue(payload, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
-        
-            @SuppressWarnings("unchecked")
-            Map<String, Object> dataMap = (Map<String, Object>) parsedPayload.get("data");
-            if (dataMap == null) {
-            	log.info("payload가 data 구조 아님");
-                dataMap = parsedPayload;
-            }
-    	
-            String paymentId = (String) dataMap.get("paymentId");
-            
-            if (paymentId == null) {
-                throw new IllegalArgumentException("페이로드에 paymentId가 누락되었습니다.");
-            }
-            
-            Map<String, Object> result = new HashMap<>();
-            result.put("paymentId", paymentId);
-            return result;
-            
-    	} catch (JsonProcessingException e) {
-            log.error("🚨 [Webhook] JSON 파싱 실패. payload={}", payload, e);
-            throw new IllegalArgumentException("유효하지 않은 JSON 페이로드입니다.", e);
-        }
-    }*/
-    
-    
-
 }
