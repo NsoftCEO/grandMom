@@ -28,11 +28,14 @@ public enum ErrorCode {
 
     // payment
     PAYMENT_INVALID_REQUEST(HttpStatus.BAD_REQUEST, "PAY001", "결제 요청이 유효하지 않습니다."),
-	PG_PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAY002", "결제가 존재하지 않습니다."),
-	PAYMENT_AMOUNT_MISMATCH(HttpStatus.NOT_FOUND, "PAY003", "결제 금액이 일치하지 않습니다.")
+	PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAY002", "결제가 존재하지 않습니다."),	
+	PAYMENT_AMOUNT_MISMATCH(HttpStatus.NOT_FOUND, "PAY003", "결제 금액이 일치하지 않습니다."),
 	
-	
-	
+	/* ================= PG ================= */
+	WEBHOOK_SIGNATURE_INVALID(HttpStatus.UNAUTHORIZED, "WH001", "웹훅 시그니처 검증 실패."),
+    PG_API_FAILED(HttpStatus.BAD_GATEWAY, "PG001", "PG 서버 호출에 실패했습니다."),
+    PG_INVALID_RESPONSE(HttpStatus.BAD_GATEWAY, "PG002", "PG 응답이 유효하지 않습니다."),
+    PG_PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PG003", "PG 결제 조회 결과가 없습니다.")
 	
 	
 	;	

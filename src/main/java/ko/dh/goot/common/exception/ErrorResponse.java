@@ -11,7 +11,7 @@ public class ErrorResponse {
 
     private final String code;
     private final String message;
-    private final Object errors; // Validation 상세 오류
+    private final Object errors;
     private final LocalDateTime timestamp;
 
     public static ErrorResponse of(ErrorCode errorCode) {

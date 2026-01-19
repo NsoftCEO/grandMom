@@ -44,34 +44,38 @@ public class PaymentService {
     
     private static final String TRANSACTION_PAID = "Transaction.Paid";
 
-    
+    // 웹훅에서 500을 return하면 웹훅 수백 번 재전송 따라서 실패했어도 DB에 남기고, 200을 준다.
 	public void handlePaymentWebhook(String payload, String webhookId, String webhookSignature, String webhookTimestamp) {
+		
 		boolean verifyWebhook = webhookService.verifyWebhook(payload, webhookId, webhookSignature, webhookTimestamp);
 	
     	if(!verifyWebhook) {
-    		log.error("🚨 [Webhook] 시그니처 검증 실패. 위조 요청 가능성. payload={}", payload); 
-    		throw new IllegalArgumentException("Invalid Webhook Signature.");
-    	}
-    	
-    	try {
+    		throw new BusinessException(ErrorCode.WEBHOOK_SIGNATURE_INVALID);
+    	} // 웹훅에서 “실패 응답”을 줘야 하는 유일한 경우. 나머지는 다시 요청와도 같은 에러.
+	    
+    	try {   	
     		WebhookPayload payloadData = objectMapper.readValue(payload, WebhookPayload.class);
-    		
-    		System.out.println("payloadData::");
-        	System.out.println(payloadData.toString());
-        	log.info("{}", payloadData);
+
+    		log.info("[Webhook] payload={}", payloadData);
         	       	
         	if (!TRANSACTION_PAID.equals(payloadData.getType())) {
                 log.info("[Webhook] Ignore type={}", payloadData.getType());
-                return;
+                return; // 정상 return, 200리턴하여 웹훅요청 막음
             }
         	
-        	if (payloadData.getData() == null || payloadData.getData().getPaymentId() == null) {
-                log.error("🚨 [Webhook] paymentId 누락. payload={}", payload);
-                return;
-            }
-	
         	String paymentId = payloadData.getData().getPaymentId();
         	
+        	if (payloadData.getData() == null || paymentId == null) {
+                log.error("🚨 [Webhook] paymentId 누락. payload={} paymentId={}", payload, paymentId);
+                return;
+            }
+ 	
+        	/* ===== 1. 멱등성 (가장 먼저) ===== */
+    	    if (paymentMapper.existsByPaymentId(paymentId) > 0) {
+    	        log.info("이미 처리된 결제. paymentId={}", paymentId);
+    	        return;
+    	    }
+    	    
         	confirmPaymentAndCompleteOrder(paymentId);
         	
         	
@@ -86,56 +90,53 @@ public class PaymentService {
         
 	}
 
-	// todo: portone 외부연동은 트랜잭션밖으로 빼야됨
+	public void confirmPaymentAndCompleteOrder(String paymentId) {
+
+	    /* ===== 2. PG 결제 조회 (외부 연동은 트랜잭션 포함x) ===== */
+	    PortOnePaymentResponse pgPayment =
+	            portoneApiService.portonePaymentDetails(paymentId);
+
+	    if (pgPayment == null) {
+	        throw new BusinessException(ErrorCode.PG_PAYMENT_NOT_FOUND, "paymentId=" + paymentId);
+	    }
+
+	    /* ===== 3. 내부 트랜잭션 ===== */
+	    confirmPaymentInternal(pgPayment);
+	}
+
 	@Transactional
-    public void confirmPaymentAndCompleteOrder(String paymentId) {
+    public void confirmPaymentInternal(PortOnePaymentResponse pgPayment) {
 
-        /* ===== 1. 멱등성 ===== */
-        if (paymentMapper.existsByPaymentId(paymentId) > 0) {
-        	log.info("이미 처리된 결제. paymentId={}", paymentId);
-            return;
-        }
+        Long orderId = pgPayment.getOrderId();
 
-        /* ===== 2. PG 결제 조회(외부 연동) ===== */
-        PortOnePaymentResponse portonePaymentDetails = portoneApiService.portonePaymentDetails(paymentId);
-        
-        if (portonePaymentDetails == null) {
-            throw new BusinessException(ErrorCode.PG_PAYMENT_NOT_FOUND);
-        }
-  
-        Long orderId = portonePaymentDetails.getOrderId();
-
-        /* ===== 3. 주문 조회 ===== */
+        /* ===== 4. 주문 조회 ===== */
         Order order = orderMapper.selectOrder(orderId);
         if (order == null) {
-        	throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
+        	throw new BusinessException(ErrorCode.ORDER_NOT_FOUND, "orderId=" + orderId);
         }
 
-        /* ===== 4. 금액 검증 ===== */
-        Long paidAmount = portonePaymentDetails.getAmount().getTotal();
+        /* ===== 5. 금액 검증 ===== */
+        Long paidAmount = pgPayment.getAmount().getTotal();
         if (!paidAmount.equals(Long.valueOf(order.getTotalAmount()))) {
-        	throw new BusinessException(
-                    ErrorCode.PAYMENT_AMOUNT_MISMATCH,
+        	throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH,
                     "주문금액=" + order.getTotalAmount() + ", 결제금액=" + paidAmount
                 );
         }
 
-        // ===== 5. 결제 저장 =====
-        paymentMapper.insertPayment(portonePaymentDetails);
+        // ===== 6. 결제 저장 =====
+        paymentMapper.insertPayment(pgPayment);
         
-        /* ===== 6. 주문상품 조회 (단일 옵션) ===== */
+        /* ===== 7. 주문상품 조회 (단일 옵션) ===== */
         OrderItem orderItem = orderItemMapper.selectOrderItemByOrderId(orderId);
         if (orderItem == null) {
-            throw new BusinessException(ErrorCode.ORDER_ITEM_NOT_FOUND);
+            throw new BusinessException(ErrorCode.ORDER_ITEM_NOT_FOUND, "orderId=" + orderId);
         }
-        System.out.println("orderItem:::::");
-        System.out.println(orderItem.toString());
-        // ===== 7. 재고 차감 =====
-        // decreaseStock(Long optionId, int orderQuantity)
+
+        // ===== 8. 재고 차감 =====
         productOptionService.decreaseStock(orderItem.getOptionId(), orderItem.getQuantity());
 
-        // ===== 8. 주문 상태 변경 =====
-        int resultCount = orderService.changeOrderStatus(orderId,"PAYMENT_READY", portonePaymentDetails.getStatus());
+        // ===== 9. 주문 상태 변경 =====
+        int resultCount = orderService.changeOrderStatus(orderId,"PAYMENT_READY", pgPayment.getStatus());
         
         if(resultCount != 1) {
         	throw new BusinessException(ErrorCode.ORDER_STATUS_UPDATE_FAILED,

@@ -71,65 +71,6 @@ public class PortoneApiService {
     		/* ===== 1. 기본 DTO 매핑 ===== */
     		PortOnePaymentResponse body =
     		        objectMapper.readValue(rawBody, PortOnePaymentResponse.class);
-    		
-    		
-    		System.out.println("body:::::::::::::");
-    		System.out.println(body);
-    		
-    		
-    		/* ===== 2. JsonNode로 추가 필드 추출 ===== */
-    		JsonNode root = objectMapper.readTree(rawBody);
-
-    		/*
-    		//method.provider
-    		JsonNode providerNode = root.path("method").path("provider");
-    		if (!providerNode.isMissingNode()) {
-    		    body.applyProvider(providerNode.asText());
-    		}
-
-    		//paidAt
-    		JsonNode paidAtNode = root.path("paidAt");
-    		if (!paidAtNode.isMissingNode()) {
-    		    body.applyPaidAt(
-    		        OffsetDateTime.parse(paidAtNode.asText()).toLocalDateTime()
-    		    );
-    		}
-            System.out.println("사용한 paymentId:");
-            System.out.println(paymentId);
-            System.out.println("body::");
-            System.out.println(body);
-            System.out.println(" Node::");
-            System.out.println(providerNode.asText());
-            System.out.println(paidAtNode.asText());
-            
-      
-            if (!paymentId.equals(body.getId())) {
-                throw new IllegalStateException(
-                    "결제 ID 불일치. request paymentId=" + paymentId
-                    + ", 포트원 response=" + body.getId()
-                );
-            }
-            
-            // ===== 1. 상태 검증 =====
-            if (!"PAID".equals(body.getStatus())) {
-                throw new IllegalStateException(
-                    "결제 완료 상태 아님. status=" + body.getStatus()
-                );
-            }
-
-            // ===== 2. 금액 검증 =====
-            PortOnePaymentResponse.Amount amount = body.getAmount();
-
-            if (amount == null || amount.getTotal() == null || amount.getPaid() == null) {
-                throw new IllegalStateException("amount 정보 누락");
-            }
-
-            if (!amount.getTotal().equals(amount.getPaid())) {
-                throw new IllegalStateException(
-                    "전액 결제 아님. total=" + amount.getTotal()
-                        + ", paid=" + amount.getPaid()
-                );
-            }*/
 
             // ===== 3. orderId 검증 =====		
 			Long extractOrderId = extractOrderId(body.getCustomData());
