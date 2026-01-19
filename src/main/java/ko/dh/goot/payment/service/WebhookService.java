@@ -1,26 +1,16 @@
 package ko.dh.goot.payment.service;
 
-import java.time.Instant;
 import java.nio.charset.StandardCharsets;
-
+import java.time.Instant;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import ko.dh.goot.order.dao.OrderMapper;
-import ko.dh.goot.payment.dao.PaymentMapper;
-import ko.dh.goot.payment.dto.WebhookPayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
@@ -29,16 +19,14 @@ import lombok.extern.log4j.Log4j2;
 @Service
 public class WebhookService {
 
-    // 환경 설정 파일 (application.yml 등)에서 웹훅 비밀 키를 주입받습니다.
     @Value("${portone.webhook-secret}")
     private String webhookSecret;
     
     @Value("${portone.webhook-prefix}")
     private String webhookPrefix;
     
-    private final String HMAC_SHA256 = "HmacSHA256";
+    private static final String HMAC_SHA256 = "HmacSHA256";
     
-    private final ObjectMapper objectMapper;
     
     
     public boolean verifyWebhook(String payload, String webhookId, String webhookSignature, String webhookTimestamp) {
@@ -51,39 +39,46 @@ public class WebhookService {
     	
     	try{   
 	 
-    		boolean verifyTimestamp = this.verifyTimestamp(webhookTimestamp);
+    		if (!verifyTimestamp(webhookTimestamp)) {
+    		    return false;
+    		}
     		
-    		String selfSigniture = this.selfSigniture(webhookId, webhookTimestamp, payload);
+    		String selfSignature = this.selfSignature(webhookId, webhookTimestamp, payload);
     		
-    		if(webhookSignature.equals(selfSigniture)) {
-    			System.out.println("시그니처 같음");
-    			System.out.println(webhookSignature);
-    			System.out.println(selfSigniture);
+    		if(webhookSignature.equals(selfSignature) && selfSignature != null) {
     			return true;
     		}
-			System.out.println("시그니처 다름");
+
 			return false;
 
 
     	}catch (Exception e) {
+    		log.warn("[verifyWebhook] 검증 중 예외 발생", e);
     		return false;
 		}
     	
     }
     
     private boolean verifyTimestamp(String webhookTimestamp) {
-    	long timestamp = Long.parseLong(webhookTimestamp);
-        long currentTime = Instant.now().getEpochSecond();
-        long toleranceSeconds = 300; 
-        
-        if (Math.abs(currentTime - timestamp) > toleranceSeconds) {
-            log.warn("웹훅 검즘 타임스태프 오류: {}", webhookTimestamp);
-            return false;
-        }
-        return true;
+    	try {
+    		long timestamp = Long.parseLong(webhookTimestamp);
+            long currentTime = Instant.now().getEpochSecond();
+            long toleranceSeconds = 300; 
+            
+            if (Math.abs(currentTime - timestamp) > toleranceSeconds) {
+                log.warn("웹훅 검즘 타임스태프 오류: {}", webhookTimestamp);
+                return false;
+            }
+            
+            return true;
+            
+    	} catch (NumberFormatException e) {
+    	    log.warn("웹훅 타임스탬프 형식 오류: {}", webhookTimestamp);
+    	    return false;
+    	}      
     }
     
-    private String selfSigniture(String webhookId, String timestamp, String payload) {
+    private String selfSignature(String webhookId, String timestamp, String payload) {
         try {
             String sec = webhookSecret;
             
@@ -102,8 +97,8 @@ public class WebhookService {
 
             return "v1," + Base64.getEncoder().encodeToString(macData);
         } catch (Exception e) {
-        	log.warn("시그니처 생성 중 오류 발생");
-            throw new RuntimeException("시그니처 생성 중 오류 발생", e);
+        	log.error("[Webhook Check] 시그니처 생성 실패", e);
+        	return null;
         }
     }
     

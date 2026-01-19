@@ -51,7 +51,7 @@ public class PaymentService {
 	
     	if(!verifyWebhook) {
     		throw new BusinessException(ErrorCode.WEBHOOK_SIGNATURE_INVALID);
-    	} // 웹훅에서 “실패 응답”을 줘야 하는 유일한 경우. 나머지는 다시 요청와도 같은 에러.
+    	} // 웹훅에서 실패 응답!!!!! 을 줘야 하는 유일한 경우. 나머지는 다시 요청와도 같은 에러.
 	    
     	try {   	
     		WebhookPayload payloadData = objectMapper.readValue(payload, WebhookPayload.class);
