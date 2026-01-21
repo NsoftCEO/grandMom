@@ -67,7 +67,6 @@ public class PortoneApiService {
     		    throw new IllegalStateException("PortOne API 응답 body 없음");
     		}
 
-    		System.out.println("dto맵핑::::::::::::");
     		/* ===== 1. 기본 DTO 매핑 ===== */
     		PortOnePaymentResponse body =
     		        objectMapper.readValue(rawBody, PortOnePaymentResponse.class);

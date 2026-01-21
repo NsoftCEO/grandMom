@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ko.dh.goot.common.exception.BusinessException;
 import ko.dh.goot.common.exception.ErrorCode;
+import ko.dh.goot.common.exception.WebhookException;
 import ko.dh.goot.order.dao.OrderItemMapper;
 import ko.dh.goot.order.dao.OrderMapper;
 import ko.dh.goot.order.dto.Order;
@@ -50,7 +51,7 @@ public class PaymentService {
 		boolean verifyWebhook = webhookService.verifyWebhook(payload, webhookId, webhookSignature, webhookTimestamp);
 	
     	if(!verifyWebhook) {
-    		throw new BusinessException(ErrorCode.WEBHOOK_SIGNATURE_INVALID);
+    		throw new WebhookException(ErrorCode.WEBHOOK_SIGNATURE_INVALID);
     	} // 웹훅에서 실패 응답!!!!! 을 줘야 하는 유일한 경우. 나머지는 다시 요청와도 같은 에러.
 	    
     	try {   	
