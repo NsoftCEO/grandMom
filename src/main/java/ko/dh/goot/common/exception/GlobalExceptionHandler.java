@@ -50,6 +50,13 @@ public class GlobalExceptionHandler {
                 .badRequest()
                 .body(ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, errors));
     }
+    
+    // 반드시 400 반환 (재시도 막기)
+    @ExceptionHandler(WebhookException.class)
+    public ResponseEntity<Void> handleWebhookException(WebhookException e) {
+        log.warn("[Webhook] invalid request: {}", e.getMessage());
+        return ResponseEntity.badRequest().build();
+    }
 
     /**
      * 시스템 예외 (예상 못 한 오류)
