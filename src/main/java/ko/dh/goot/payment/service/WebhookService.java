@@ -45,11 +45,11 @@ public class WebhookService {
     		
     		String selfSignature = this.selfSignature(webhookId, webhookTimestamp, payload);
     		
-    		if(webhookSignature.equals(selfSignature) && selfSignature != null) {
-    			return true;
+    		if (selfSignature != null && selfSignature.equals(webhookSignature)) {
+    		    return true;
+    		}else {
+    			return false;
     		}
-
-			return false;
 
 
     	}catch (Exception e) {
