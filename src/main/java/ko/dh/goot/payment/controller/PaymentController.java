@@ -35,9 +35,11 @@ public class PaymentController {
             @RequestHeader("webhook-signature") String webhookSignature,
             @RequestHeader("webhook-timestamp") String webhookTimestamp){
     	
+    	// 시그니처 오류 시 Exception 발생 -> GlobalHandler가 401 응답
+        // 그 외 비즈니스 오류는 서비스 내부 catch 후 정상 종료 (200 응답 유도)
         paymentService.handlePaymentWebhook(payload, webhookId, webhookSignature, webhookTimestamp);
         
         
-        return ResponseEntity.ok(Map.of("message", "PG사 웹훅 처리 성공 및 주문 완료"));
+        return ResponseEntity.ok().build(); // 항상 200
     }
 }

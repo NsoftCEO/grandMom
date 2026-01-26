@@ -8,11 +8,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
+import ko.dh.goot.common.exception.BusinessException;
+import ko.dh.goot.common.exception.ErrorCode;
 import ko.dh.goot.payment.dto.PortOnePaymentResponse;
 import lombok.extern.log4j.Log4j2;
 
@@ -54,17 +57,17 @@ public class PortoneApiService {
         	ResponseEntity<String> rawResponse =
         		    restTemplate.exchange(paymentUrl, HttpMethod.GET, entity, String.class);
 
-    		if (!rawResponse.getStatusCode().is2xxSuccessful()) {
-    		    log.error("PortOne API 실패. status={}, body={}", rawResponse.getStatusCode(), rawResponse.getBody());
-    		    throw new IllegalStateException("PortOne API HTTP 실패");
-    		}
+        	if (!rawResponse.getStatusCode().is2xxSuccessful()) {
+                log.error("🚨 PortOne API HTTP 실패. status={}, body={}", rawResponse.getStatusCode(), rawResponse.getBody());
+                throw new BusinessException(ErrorCode.PG_API_FAILED, "status=" + rawResponse.getStatusCode());
+            }
     		
     		System.out.println("rawResponse:");
     		System.out.println(rawResponse);
 
     		String rawBody = rawResponse.getBody();
     		if (rawBody == null || rawBody.isBlank()) {
-    		    throw new IllegalStateException("PortOne API 응답 body 없음");
+    			throw new BusinessException(ErrorCode.PG_EMPTY_RESPONSE);
     		}
 
     		/* ===== 1. 기본 DTO 매핑 ===== */
@@ -77,38 +80,45 @@ public class PortoneApiService {
 			 
             return body;
 
+        } catch (BusinessException e) {
+            // 이미 의도된 예외 → 그대로 전달
+            throw e;
+
+        } catch (JsonProcessingException e) {
+            log.error("PG 응답 JSON 파싱 실패. paymentId={}", paymentId, e);
+            throw new BusinessException(ErrorCode.PG_PARSE_FAILED, e);
+
         } catch (Exception e) {
-            log.error("🚨 PortOne 결제 조회 실패. paymentId={}", paymentId, e);
-            throw new RuntimeException("PortOne 결제 조회 실패", e);
+            log.error("PG 통신 중 예외 발생. paymentId={}", paymentId, e);
+            throw new BusinessException(ErrorCode.PG_API_FAILED, e);
         }
     }
     
     // 나중에 유틸클래스 만들어서 옮길수도있음
     private Long extractOrderId(String customData) {
 
-	    if (customData == null || customData.isBlank()) {
-	    	throw new IllegalStateException("extractOrderId중 customData 없습니다.");
-	    }
+    	if (customData == null || customData.isBlank()) {
+    		throw new BusinessException(ErrorCode.PG_INVALID_DATA, "customData empty");
+        }
 
 	    try {
 	        PortOnePaymentResponse.CustomData data =
-	            objectMapper.readValue(
-	                customData,
-	                PortOnePaymentResponse.CustomData.class
-	            );
+	            objectMapper.readValue(customData, PortOnePaymentResponse.CustomData.class);
 	        
 	        if (data.getOrderId() == null) {
-	            throw new IllegalStateException("customData.orderId 누락");
+	        	throw new BusinessException(ErrorCode.PG_INVALID_DATA, "customData.orderId is null");
 	        }
 	        
 	        return data.getOrderId();
 
+	    } catch (BusinessException e) {
+	        throw e;
+	    } catch (JsonProcessingException e) {
+	        throw new BusinessException(ErrorCode.PG_PARSE_FAILED, "customData parse error", e);
 	    } catch (Exception e) {
-	        throw new IllegalStateException(
-	            "customData 파싱 실패: " + customData, e
-	        );
+	        throw new BusinessException(ErrorCode.PG_INVALID_RESPONSE,"customData parsing failed: " + customData);
 	    }
-	}
-
+    }
+    
 
 }
