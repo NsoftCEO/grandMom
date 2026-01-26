@@ -83,10 +83,13 @@ public class PaymentService {
     	} catch (JsonProcessingException e) {
             log.error("🚨 [Webhook] JSON 파싱 실패. payload={}", payload, e);
             return;
-        } catch (Exception e) {
-            log.error("🚨 [Webhook] 처리 중 예외 발생", e);
-            return;
-        }
+    	} catch (BusinessException e) {
+    	    log.warn("[Webhook] business error. code={}, message={}", e.getErrorCode().getCode(), e.getMessage(), e);
+    	    return;
+    	} catch (Exception e) {
+    	    log.error("[Webhook] unexpected error", e);
+    	    return;
+    	}
     	
         
 	}
