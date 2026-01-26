@@ -41,6 +41,7 @@ public enum ErrorCode {
 	PG_EMPTY_RESPONSE(HttpStatus.BAD_GATEWAY, "PG010", "PG 응답 바디 없음"),
 	PG_PARSE_FAILED(HttpStatus.BAD_GATEWAY, "PG011", "PG 응답 JSON 파싱 실패"),
 	PG_INVALID_DATA(HttpStatus.BAD_GATEWAY, "PG012", "PG 응답 데이터 구조 오류"),
+	PG_INVALID_RESPONSE(HttpStatus.BAD_GATEWAY, "PG013", "PG 응답 오류"),
 
 	// PG 비즈니스
 	PG_PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PG020", "PG 결제 정보 없음");
