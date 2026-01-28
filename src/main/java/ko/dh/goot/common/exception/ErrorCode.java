@@ -31,20 +31,26 @@ public enum ErrorCode {
 	PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAY002", "결제가 존재하지 않습니다."),	
 	PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "PAY003", "결제 금액이 일치하지 않습니다."),
 	
-	/* ================= PG ================= */
-	WEBHOOK_SIGNATURE_INVALID(HttpStatus.UNAUTHORIZED, "WH001", "웹훅 시그니처 검증 실패."),
-	// PG 통신
-	PG_API_FAILED(HttpStatus.BAD_GATEWAY, "PG001", "PG 서버 호출 실패"),
-	PG_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "PG002", "PG 서버 응답 지연"),
+	/* ================= Webhook ================= */
+    WEBHOOK_SIGNATURE_INVALID(HttpStatus.BAD_REQUEST, "WH001", "웹훅 시그니처 검증 실패"),
+    WEBHOOK_TIMESTAMP_EXPIRED(HttpStatus.BAD_REQUEST, "WH002", "웹훅 타임스탬프 만료"),
+    WEBHOOK_INVALID_REQUEST(HttpStatus.BAD_REQUEST, "WH003", "웹훅 요청 형식 오류"),
 
-	// PG 응답
-	PG_EMPTY_RESPONSE(HttpStatus.BAD_GATEWAY, "PG010", "PG 응답 바디 없음"),
-	PG_PARSE_FAILED(HttpStatus.BAD_GATEWAY, "PG011", "PG 응답 JSON 파싱 실패"),
-	PG_INVALID_DATA(HttpStatus.BAD_GATEWAY, "PG012", "PG 응답 데이터 구조 오류"),
-	PG_INVALID_RESPONSE(HttpStatus.BAD_GATEWAY, "PG013", "PG 응답 오류"),
+    /* ================= PG 통신 ================= */
+    PG_API_FAILED(HttpStatus.BAD_GATEWAY, "PG001", "PG 서버 호출 실패"),
+    PG_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "PG002", "PG 서버 응답 지연"),
 
-	// PG 비즈니스
-	PG_PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PG020", "PG 결제 정보 없음");
+    /* ================= PG 응답 ================= */
+    PG_EMPTY_RESPONSE(HttpStatus.BAD_GATEWAY, "PG010", "PG 응답 바디 없음"),
+    PG_PARSE_FAILED(HttpStatus.BAD_GATEWAY, "PG011", "PG 응답 JSON 파싱 실패"),
+    PG_INVALID_DATA(HttpStatus.BAD_GATEWAY, "PG012", "PG 응답 데이터 구조 오류"),
+    PG_INVALID_RESPONSE(HttpStatus.BAD_GATEWAY, "PG013", "PG 응답 오류"),
+
+    /* ================= PG 비즈니스 ================= */
+    PG_PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PG020", "PG 결제 정보 없음");
+	
+	
+	
 	;	
     private final HttpStatus status;
     private final String code;
