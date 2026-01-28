@@ -29,6 +29,18 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(errorCode));
     }
 
+    @ExceptionHandler(WebhookException.class)
+    public ResponseEntity<Void> handleWebhookException(WebhookException e) {
+    	ErrorCode errorCode = e.getErrorCode();
+    	
+    	log.warn("WebhookException 발생. code={}, message={}",
+                errorCode.getCode(), e.getMessage(), e);
+
+    	return ResponseEntity
+                .status(errorCode.getStatus())
+                .build(); // PG에 리턴이므로 로그기록하고, status만 보내면됨
+    }
+    
     /**
      * Validation 예외 (@Valid)
      */
@@ -49,13 +61,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .badRequest()
                 .body(ErrorResponse.of(ErrorCode.INVALID_INPUT_VALUE, errors));
-    }
-    
-    // 반드시 400 반환 (재시도 막기)
-    @ExceptionHandler(WebhookException.class)
-    public ResponseEntity<Void> handleWebhookException(WebhookException e) {
-        log.warn("[Webhook] invalid request: {}", e.getMessage());
-        return ResponseEntity.badRequest().build();
     }
 
     /**

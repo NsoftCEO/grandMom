@@ -48,11 +48,8 @@ public class PaymentService {
     // 웹훅에서 500을 return하면 웹훅 수백 번 재전송 따라서 실패했어도 DB에 남기고, 200을 준다.
 	public void handlePaymentWebhook(String payload, String webhookId, String webhookSignature, String webhookTimestamp) {
 		
-		boolean verifyWebhook = webhookService.verifyWebhook(payload, webhookId, webhookSignature, webhookTimestamp);
-	
-    	if(!verifyWebhook) {
-    		throw new WebhookException(ErrorCode.WEBHOOK_SIGNATURE_INVALID);
-    	} // 웹훅에서 실패 응답!!!!! 을 줘야 하는 유일한 경우. 나머지는 다시 요청와도 같은 에러.
+		webhookService.verifyWebhook(payload, webhookId, webhookSignature, webhookTimestamp);
+
 	    
     	try {   	
     		WebhookPayload payloadData = objectMapper.readValue(payload, WebhookPayload.class);

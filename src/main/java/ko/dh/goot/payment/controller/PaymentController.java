@@ -37,6 +37,7 @@ public class PaymentController {
     	
     	// 시그니처 오류 시 Exception 발생 -> GlobalHandler가 401 응답
         // 그 외 비즈니스 오류는 서비스 내부 catch 후 정상 종료 (200 응답 유도)
+    	// 요약: 웹훅 시그니처 오류시 400에러, 그 외 전부 200응답
         paymentService.handlePaymentWebhook(payload, webhookId, webhookSignature, webhookTimestamp);
         
         
