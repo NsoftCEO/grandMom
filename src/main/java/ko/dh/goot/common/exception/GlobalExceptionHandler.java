@@ -1,19 +1,29 @@
 package ko.dh.goot.common.exception;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import jakarta.security.auth.message.AuthException;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+	@ExceptionHandler(AuthException.class)
+    public ResponseEntity<?> handleAuth(AuthException e) {
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(Map.of("error", e.getMessage()));
+    }
+	
     /**
      * 비즈니스 예외 (의도된 실패)
      */
