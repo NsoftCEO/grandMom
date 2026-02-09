@@ -1,4 +1,4 @@
-package ko.dh.goot.auth;
+package ko.dh.goot.security.principal;
 
 import java.io.Serializable;
 

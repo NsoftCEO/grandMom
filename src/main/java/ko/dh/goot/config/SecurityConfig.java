@@ -1,4 +1,4 @@
-package ko.dh.goot.security;
+package ko.dh.goot.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
