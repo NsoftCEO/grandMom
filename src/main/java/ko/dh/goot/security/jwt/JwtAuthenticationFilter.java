@@ -15,8 +15,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import ko.dh.goot.auth.UserPrincipal;
 import ko.dh.goot.common.exception.ErrorCode;
+import ko.dh.goot.security.principal.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
