@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="ko.dh.goot.user.dao.UserMapper">
+
+	<select id="findByEmail" resultType="User">
+        SELECT *
+        FROM users
+        WHERE email = #{email}
+          AND login_type = 'LOCAL'
+          AND status = 'ACTIVE'
+    </select>
+
+    <select id="findByProvider" resultType="User">
+        SELECT *
+        FROM users
+        WHERE provider = #{provider}
+          AND provider_id = #{providerId}
+          AND status = 'ACTIVE'
+    </select>
+
+    <insert id="insert">
+        INSERT INTO users (
+            user_id, name, email, password,
+            role, status,
+            login_type, provider, provider_id
+        ) VALUES (
+            #{userId}, #{name}, #{email}, #{password},
+            #{role}, #{status},
+            #{loginType}, #{provider}, #{providerId}
+        )
+    </insert>
+
+    <update id="updateLastLogin">
+        UPDATE users
+        SET last_login_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+</mapper>

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.security.auth.message.AuthException;
+import ko.dh.goot.security.jwt.JwtProvider;
 import lombok.RequiredArgsConstructor;
 
 @Service
