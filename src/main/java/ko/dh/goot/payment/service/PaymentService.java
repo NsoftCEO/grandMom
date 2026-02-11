@@ -1,6 +1,7 @@
 package ko.dh.goot.payment.service;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,10 +49,11 @@ public class PaymentService {
     // 웹훅에서 500을 return하면 웹훅 수백 번 재전송 따라서 실패했어도 DB에 남기고, 200을 준다.
 	public void handlePaymentWebhook(String payload, String webhookId, String webhookSignature, String webhookTimestamp) {
 		
+		// try밖에 둬서 에러 catch안되고 403에러 던지게 함.
 		webhookService.verifyWebhook(payload, webhookId, webhookSignature, webhookTimestamp);
-
-	    
+		
     	try {   	
+    		
     		WebhookPayload payloadData = objectMapper.readValue(payload, WebhookPayload.class);
 
     		log.info("[Webhook] payload={}", payloadData);
@@ -64,9 +66,8 @@ public class PaymentService {
         	String paymentId = payloadData.getData().getPaymentId();
         	
         	if (payloadData.getData() == null || paymentId == null) {
-                log.error("🚨 [Webhook] paymentId 누락. payload={} paymentId={}", payload, paymentId);
-                return;
-            }
+        		throw new WebhookException(ErrorCode.WEBHOOK_INVALID_PAYLOAD, "paymentId=" + paymentId + "payloadData.getData()" + payloadData.getData());
+            } // 500에러 반환
  	
         	/* ===== 1. 멱등성 (가장 먼저) ===== */
     	    if (paymentMapper.existsByPaymentId(paymentId) > 0) {
@@ -74,8 +75,7 @@ public class PaymentService {
     	        return;
     	    }
     	    
-        	confirmPaymentAndCompleteOrder(paymentId);
-        	
+        	confirmPaymentAndCompleteOrder(paymentId);        	
         	
     	} catch (JsonProcessingException e) {
             log.error("🚨 [Webhook] JSON 파싱 실패. payload={}", payload, e);
@@ -85,7 +85,7 @@ public class PaymentService {
     	    return;
     	} catch (Exception e) {
     	    log.error("[Webhook] unexpected error", e);
-    	    return;
+    	    throw e; // 서버에러는 500반환해서 재시도 요청
     	}
     	
         
@@ -125,7 +125,12 @@ public class PaymentService {
         }
 
         // ===== 6. 결제 저장 =====
-        paymentMapper.insertPayment(pgPayment);
+        try {
+            paymentMapper.insertPayment(pgPayment);
+        } catch (DuplicateKeyException e) {
+            log.info("[Webhook] 이미 처리된 결제 (DB unique). paymentId={}", pgPayment.getId());
+            return; // 200 OK 리턴
+        }
         
         /* ===== 7. 주문상품 조회 (단일 옵션) ===== */
         OrderItem orderItem = orderItemMapper.selectOrderItemByOrderId(orderId);
@@ -140,9 +145,7 @@ public class PaymentService {
         int resultCount = orderService.changeOrderStatus(orderId,"PAYMENT_READY", pgPayment.getStatus());
         
         if(resultCount != 1) {
-        	throw new BusinessException(ErrorCode.ORDER_STATUS_UPDATE_FAILED,
-                    "orderId=" + orderId
-                );
+        	throw new BusinessException(ErrorCode.ORDER_STATUS_UPDATE_FAILED, "orderId=" + orderId);                    
         }
 
         

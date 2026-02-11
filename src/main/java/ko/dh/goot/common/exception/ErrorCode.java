@@ -38,10 +38,11 @@ public enum ErrorCode {
 	PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "PAY003", "결제 금액이 일치하지 않습니다."),
 	
 	/* ================= Webhook ================= */
-    WEBHOOK_SIGNATURE_INVALID(HttpStatus.BAD_REQUEST, "WH001", "웹훅 시그니처 검증 실패"),
-    WEBHOOK_TIMESTAMP_EXPIRED(HttpStatus.BAD_REQUEST, "WH002", "웹훅 타임스탬프 만료"),
-    WEBHOOK_INVALID_REQUEST(HttpStatus.BAD_REQUEST, "WH003", "웹훅 요청 형식 오류"),
-
+    WEBHOOK_SIGNATURE_INVALID(HttpStatus.FORBIDDEN, "WH001", "웹훅 시그니처 검증 실패"),
+    WEBHOOK_TIMESTAMP_EXPIRED(HttpStatus.FORBIDDEN, "WH002", "웹훅 타임스탬프 만료"),
+    WEBHOOK_INVALID_REQUEST(HttpStatus.FORBIDDEN, "WH003", "웹훅 요청 형식 오류"),
+    WEBHOOK_INVALID_PAYLOAD(HttpStatus.INTERNAL_SERVER_ERROR, "WH004", "웹훅 페이로드 에러"),
+    
     /* ================= PG 통신 ================= */
     PG_API_FAILED(HttpStatus.BAD_GATEWAY, "PG001", "PG 서버 호출 실패"),
     PG_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "PG002", "PG 서버 응답 지연"),

@@ -2,6 +2,8 @@ package ko.dh.goot.product.service;
 
 import org.springframework.stereotype.Service;
 
+import ko.dh.goot.common.exception.BusinessException;
+import ko.dh.goot.common.exception.ErrorCode;
 import ko.dh.goot.product.dao.ProductOptionMapper;
 import lombok.RequiredArgsConstructor;
 
@@ -17,10 +19,8 @@ public class ProductOptionService {
 
         // 👉 조건 불일치 = 재고 부족 또는 존재하지 않는 옵션
         if (updatedCount != 1) {
-            throw new IllegalStateException(
-                "재고 부족 또는 옵션 없음. optionId=" + optionId
-                    + ", quantity=" + orderQuantity
-            );
+        	throw new BusinessException(ErrorCode.OUT_OF_STOCK, 
+        			"optionId=" + optionId + ", quantity=" + orderQuantity);
         }
     }
 	

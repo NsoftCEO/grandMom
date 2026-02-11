@@ -31,6 +31,7 @@ public class SecurityConfig {
        
     	http
             .httpBasic(AbstractHttpConfigurer::disable)
+            .formLogin(AbstractHttpConfigurer::disable)
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -42,7 +43,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                 		"/api/auth/**",
-                		"/oauth2/**"
+                		"/oauth2/**",
+                		"/payment/handlePaymentWebhook"
                 		).permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
