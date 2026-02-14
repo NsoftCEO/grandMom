@@ -1,0 +1,5 @@
+mybatis TypeHandler
+
+DB값과 객체 맵핑 핸들러
+EX) STATUS를 enum값으로 설정했는데, db조회시 db값이 객체와 맵핑이 안될수 있으므로 TypeHandler를 사용하여 
+에러 안던지고 처리할 수 있음

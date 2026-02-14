@@ -3,7 +3,7 @@
 
 <mapper namespace="ko.dh.goot.order.dao.OrderItemMapper">
 
- <resultMap id="orderItemResultMap" type="ko.dh.goot.order.dto.OrderItem">
+ <resultMap id="orderItemResultMap" type="ko.dh.goot.order.dto.OrderItemEntity">
     <id property="orderItemId" column="order_item_id"/>
 
     <result property="orderId" column="order_id"/>
@@ -51,7 +51,7 @@
 </select>
 
 
-<insert id="insertOrderItem" parameterType="ko.dh.goot.order.dto.OrderItem"
+<insert id="insertOrderItem" parameterType="ko.dh.goot.order.domain.OrderItemEntity"
             useGeneratedKeys="true" keyProperty="orderItemId">
 
         INSERT INTO order_item (

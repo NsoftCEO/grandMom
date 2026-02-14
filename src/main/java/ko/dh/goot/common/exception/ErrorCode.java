@@ -23,6 +23,8 @@ public enum ErrorCode {
     ORDER_INVALID_STATUS(HttpStatus.BAD_REQUEST, "O002", "주문 상태가 올바르지 않습니다."),
     ORDER_CREATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "O003", "주문 생성을 실패했습니다."),
     ORDER_STATUS_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "O004", "주문 상태 변경을 실패했습니다."),
+    ORDER_INVALID_QUANTITY(HttpStatus.INTERNAL_SERVER_ERROR, "O005", "주문 수량이 알맞지 않습니다."),
+    ORDER_INVALID_UNIT_PRICE(HttpStatus.INTERNAL_SERVER_ERROR, "O006", "주문 상품 가격이 알맞지 않습니다."),
     
     // orderItem
     ORDER_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "OI001", "주문상품이 존재하지 않습니다."),
