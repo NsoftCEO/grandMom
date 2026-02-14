@@ -58,34 +58,34 @@ public class OrderService {
         return orderProduct;
     }
 	
-	public OrderResponse prepareOrder(OrderRequest req, String userId) {
+	public OrderResponse prepareOrder(OrderRequest orderRequest, String userId) {
 
-		ProductOptionForOrder product = productOptionMapper.selectProductOptionDetail(req.getOptionId());
+		ProductOptionForOrder product = productOptionMapper.selectProductOptionDetail(orderRequest.getOptionId());
         
         if (product == null) {
         	throw new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND); // todo :: Validation 패키지 새로 만들기
         }
         
-        if (product.getStockQuantity() < req.getQuantity()) {
+        if (product.getStockQuantity() < orderRequest.getQuantity()) {
         	throw new BusinessException(ErrorCode.OUT_OF_STOCK,
                     "현재 재고: " + product.getStockQuantity()
             );
         }
         
         int unitPrice = product.getUnitPrice();
-        int quantity = req.getQuantity();
+        int quantity = orderRequest.getQuantity();
         int serverCalculatedAmount = unitPrice * quantity;
         
         
         Order order = Order.builder()
                 .userId(userId)
-                .orderName(req.getOrderName())
+                .orderName(orderRequest.getOrderName())
                 .totalAmount(serverCalculatedAmount)
                 .orderStatus("PAYMENT_READY")
-                .receiverName(req.getReceiver())
-                .receiverPhone(req.getPhone())
-                .receiverAddress(req.getAddress())
-                .deliveryMemo(req.getMemo())
+                .receiverName(orderRequest.getReceiver())
+                .receiverPhone(orderRequest.getPhone())
+                .receiverAddress(orderRequest.getAddress())
+                .deliveryMemo(orderRequest.getMemo())
                 .build();
         
         int orderInsertCount = orderMapper.insertOrder(order);
@@ -98,8 +98,8 @@ public class OrderService {
 
         String optionInfoJson = null;
         try {
-            if (req.getOptionInfo() != null) {
-                optionInfoJson = objectMapper.writeValueAsString(req.getOptionInfo());
+            if (orderRequest.getOptionInfo() != null) {
+                optionInfoJson = objectMapper.writeValueAsString(orderRequest.getOptionInfo());
             }
         } catch (Exception e) {
             throw new BusinessException(
