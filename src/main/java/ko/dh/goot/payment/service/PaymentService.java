@@ -13,8 +13,9 @@ import ko.dh.goot.common.exception.ErrorCode;
 import ko.dh.goot.common.exception.WebhookException;
 import ko.dh.goot.order.dao.OrderItemMapper;
 import ko.dh.goot.order.dao.OrderMapper;
-import ko.dh.goot.order.dto.Order;
-import ko.dh.goot.order.dto.OrderItem;
+import ko.dh.goot.order.domain.Order;
+import ko.dh.goot.order.domain.OrderItem;
+import ko.dh.goot.order.dto.OrderItemEntity;
 import ko.dh.goot.order.service.OrderService;
 import ko.dh.goot.payment.dao.PaymentMapper;
 import ko.dh.goot.payment.dto.PortOnePaymentResponse;
@@ -133,7 +134,7 @@ public class PaymentService {
         }
         
         /* ===== 7. 주문상품 조회 (단일 옵션) ===== */
-        OrderItem orderItem = orderItemMapper.selectOrderItemByOrderId(orderId);
+        OrderItemEntity orderItem = orderItemMapper.selectOrderItemByOrderId(orderId);
         if (orderItem == null) {
             throw new BusinessException(ErrorCode.ORDER_ITEM_NOT_FOUND, "orderId=" + orderId);
         }
