@@ -4,8 +4,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import ko.dh.goot.order.domain.Order;
-import ko.dh.goot.order.dto.OrderEntity;
 import ko.dh.goot.order.dto.OrderProductView;
+import ko.dh.goot.order.entity.OrderEntity;
 
 @Mapper
 public interface OrderMapper {

@@ -3,7 +3,7 @@
 
 <mapper namespace="ko.dh.goot.order.dao.OrderItemMapper">
 
- <resultMap id="orderItemResultMap" type="ko.dh.goot.order.dto.OrderItemEntity">
+ <resultMap id="orderItemResultMap" type="ko.dh.goot.order.entity.OrderItemEntity">
     <id property="orderItemId" column="order_item_id"/>
 
     <result property="orderId" column="order_id"/>

@@ -4,8 +4,8 @@ import java.time.LocalDateTime;
 
 import ko.dh.goot.common.exception.BusinessException;
 import ko.dh.goot.common.exception.ErrorCode;
-import ko.dh.goot.order.dto.OrderItemEntity;
 import ko.dh.goot.order.dto.ProductOptionForOrder;
+import ko.dh.goot.order.entity.OrderItemEntity;
 import ko.dh.goot.payment.domain.RefundStatus;
 import lombok.Getter;
 

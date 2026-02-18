@@ -15,7 +15,7 @@ import ko.dh.goot.order.dao.OrderItemMapper;
 import ko.dh.goot.order.dao.OrderMapper;
 import ko.dh.goot.order.domain.Order;
 import ko.dh.goot.order.domain.OrderItem;
-import ko.dh.goot.order.dto.OrderItemEntity;
+import ko.dh.goot.order.entity.OrderItemEntity;
 import ko.dh.goot.order.service.OrderService;
 import ko.dh.goot.payment.dao.PaymentMapper;
 import ko.dh.goot.payment.dto.PortOnePaymentResponse;

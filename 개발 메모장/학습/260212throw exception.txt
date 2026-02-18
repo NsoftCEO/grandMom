@@ -1,0 +1,13 @@
+throw exception
+
+1. 체크 예외 (Checked Exception) - 필수 선언
+IOException, SQLException 등 RuntimeException을 상속받지 않은 예외들은 체크 예외라고 부릅니다.
+체크 예외를 던지는 메서드는 반드시 try-catch로 직접 잡거나, throws를 통해 상위 메서드로 던지겠다고 선언해야 합니다. 선언하지 않으면 컴파일 에러가 발생하여 실행조차 할 수 없습니다.
+
+2. 언체크 예외 (Unchecked Exception) - 선택 선언
+
+RuntimeException을 상속받는 예외들(NullPointerException, IndexOutOfBoundsException 등)입니다.
+
+선언 생략 가능: 이들은 throws를 적지 않아도 자동으로 상위로 던져집니다.
+
+왜? 모든 메서드에 throws NullPointerException을 적어야 한다면 코드가 너무 지저분해지기 때문에 자바 설계자들이 생략 가능하게 만들었습니다.

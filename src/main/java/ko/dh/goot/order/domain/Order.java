@@ -3,7 +3,7 @@ package ko.dh.goot.order.domain;
 import java.util.ArrayList;
 import java.util.List;
 
-import ko.dh.goot.order.dto.OrderEntity;
+import ko.dh.goot.order.entity.OrderEntity;
 import lombok.Getter;
 
 @Getter

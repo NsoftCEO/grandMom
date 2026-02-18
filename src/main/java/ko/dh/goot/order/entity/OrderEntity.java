@@ -1,4 +1,4 @@
-package ko.dh.goot.order.dto;
+package ko.dh.goot.order.entity;
 
 import java.time.LocalDateTime;
 
