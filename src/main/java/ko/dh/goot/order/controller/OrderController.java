@@ -14,15 +14,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+import jakarta.validation.Valid;
 import ko.dh.goot.order.dto.OrderProductView;
 import ko.dh.goot.order.dto.OrderRequest;
 import ko.dh.goot.order.dto.OrderResponse;
 import ko.dh.goot.order.service.OrderService;
-import ko.dh.goot.payment.service.PortoneApiService;
-import ko.dh.goot.payment.service.WebhookService;
-import ko.dh.goot.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 @Log4j2
@@ -57,7 +53,7 @@ public class OrderController {
     }
 
     @PostMapping("/prepareOrder")
-    public ResponseEntity<OrderResponse> prepareOrder(@RequestBody OrderRequest orderRequest) {
+    public ResponseEntity<OrderResponse> prepareOrder(@Valid @RequestBody OrderRequest orderRequest) {
         System.out.println("prepareOrder맵핑");
     	String userId = "user-1234"; // 임시 사용자 ID
        
