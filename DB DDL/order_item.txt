@@ -14,7 +14,6 @@ CREATE TABLE order_item (
     color         VARCHAR(50) NOT NULL,
     size          VARCHAR(50) NOT NULL,
 
-    option_info   JSON,
     refund_status VARCHAR(20) NOT NULL DEFAULT 'NONE',
 
     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
