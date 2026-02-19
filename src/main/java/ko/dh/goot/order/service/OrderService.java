@@ -8,10 +8,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ko.dh.goot.common.exception.BusinessException;
 import ko.dh.goot.common.exception.ErrorCode;
+import ko.dh.goot.order.dao.OrderEntityMapper;
+import ko.dh.goot.order.dao.OrderItemEntityMapper;
 import ko.dh.goot.order.dao.OrderItemMapper;
 import ko.dh.goot.order.dao.OrderMapper;
 import ko.dh.goot.order.domain.Order;
@@ -42,8 +43,6 @@ public class OrderService {
 	private final OrderMapper orderMapper;
 	private final OrderItemMapper orderItemMapper;
 	private final ProductOptionMapper productOptionMapper;	
-	private final ObjectMapper objectMapper;
-
 	public OrderProductView selectOrderProduct(Long optionId, int quantity) throws NotFoundException {
 
 		OrderProductView orderProduct = orderMapper.selectOrderProduct(optionId);
@@ -64,28 +63,20 @@ public class OrderService {
 	
 	@Transactional
 	public OrderResponse prepareOrder(OrderRequest orderRequest, String userId) {
+		
+		if (orderRequest.getQuantity() == null || orderRequest.getQuantity() <= 0) {
+		    throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "주문 수량: " + orderRequest.getQuantity());
+		}
+		
 	    ProductOptionForOrder product = productOptionMapper.selectProductOptionDetail(orderRequest.getOptionId());
 
-	    if (product == null) throw new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND);
+	    if (product == null) {
+	    	throw new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND);
+	    }
+	    
 	    if (product.getStockQuantity() < orderRequest.getQuantity())
 	        throw new BusinessException(ErrorCode.OUT_OF_STOCK, "현재 재고: " + product.getStockQuantity());
 
-	    int unitPrice = product.getUnitPrice();
-	    int quantity = orderRequest.getQuantity();
-
-	    // 도메인 객체 생성
-	    OrderItem orderItem = OrderItem.create(
-	            null,  // orderId는 DB 저장 후 세팅
-	            product.getProductId(),
-	            unitPrice,
-	            quantity,
-	            product.getProductName(),
-	            product.getOptionId(),
-	            product.getColor(),
-	            product.getSize()
-	    );
-
-	    // Order 생성
 	    Order order = Order.create(
 	            userId,
 	            orderRequest.getOrderName(),
@@ -94,38 +85,58 @@ public class OrderService {
 	            orderRequest.getAddress(),
 	            orderRequest.getMemo()
 	    );
-	    order.addOrderItem(orderItem);
-
-	    int orderInsertCount = orderMapper.insertOrder(OrderEntity.from(order));
-	    if (orderInsertCount != 1) throw new BusinessException(ErrorCode.ORDER_CREATE_FAILED);
-
-	    Long orderId = order.getOrderId();
-	    orderItem = OrderItem.create(
-	            orderId,
-	            orderItem.getProductId(),
-	            orderItem.getUnitPrice(),
-	            orderItem.getQuantity(),
-	            orderItem.getProductName(),
-	            orderItem.getOptionId(),
-	            orderItem.getColor(),
-	            orderItem.getSize()
+	    
+	    OrderItem item = OrderItem.create(
+	            product.getProductId(),
+	            product.getOptionId(),
+	            product.getProductName(),
+	            product.getUnitPrice(),
+	            orderRequest.getQuantity(),
+	            product.getColor(),
+	            product.getSize()
 	    );
-
-	    // 옵션 info JSON 처리
-	    String optionInfoJson = null;
-	    try {
-	        if (orderRequest.getOptionInfo() != null) {
-	            optionInfoJson = objectMapper.writeValueAsString(orderRequest.getOptionInfo());
-	        }
-	    } catch (Exception e) {
-	        throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "옵션 정보 직렬화 실패");
+	    
+	    order.addItem(item);
+	    
+	    OrderEntity orderEntity = OrderEntity.builder()
+	            .userId(order.getUserId())
+	            .orderName(order.getOrderName())
+	            .totalAmount(order.getTotalAmount())
+	            .orderStatus(order.getOrderStatus().name())
+	            .receiverName(order.getReceiverName())
+	            .receiverPhone(order.getReceiverPhone())
+	            .receiverAddress(order.getReceiverAddress())
+	            .deliveryMemo(order.getDeliveryMemo())
+	            .build();
+	    
+	    int insertOrder = orderMapper.insertOrder(orderEntity);
+	    
+	    if(insertOrder != 1 || orderEntity.getOrderId() == null) {
+	    	throw new BusinessException(ErrorCode.ORDER_CREATE_FAILED);
 	    }
+	    
+	    order.assignId(orderEntity.getOrderId());
+	    
+	    OrderItemEntity itemEntity = OrderItemEntity.builder()
+	            .orderId(order.getOrderId())
+	            .productId(item.getProductId())
+	            .optionId(item.getOptionId())
+	            .productName(item.getProductName())
+	            .unitPrice(item.getUnitPrice())
+	            .quantity(item.getQuantity())
+	            .totalPrice(item.getTotalPrice())
+	            .color(item.getColor())
+	            .size(item.getSize())
+	            .refundStatus(item.getRefundStatus().name())
+	            .build();
 
-	    OrderItemEntity orderItemEntity = OrderItemEntity.from(orderItem, product, optionInfoJson);
-	    int orderItemInsertCount = orderItemMapper.insertOrderItem(orderItemEntity);
-	    if (orderItemInsertCount != 1) throw new BusinessException(ErrorCode.ORDER_CREATE_FAILED);
-
-	    return new OrderResponse(orderId, order.getTotalAmount());
+	    int insertOrderItem = orderItemMapper.insertOrderItem(itemEntity);
+	    
+	    if(insertOrderItem != 1) {
+	    	throw new BusinessException(ErrorCode.ORDER_ITEM_CREATE_FAILED);
+	    }
+	    
+	    return new OrderResponse(order.getOrderId(), order.getTotalAmount());
 	}
 
 
