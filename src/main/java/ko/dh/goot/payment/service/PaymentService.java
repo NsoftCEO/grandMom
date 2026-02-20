@@ -144,7 +144,7 @@ public class PaymentService {
 
         // ===== 9. 주문 상태 변경 =====
         int resultCount = orderService.changeOrderStatus(orderId,"PAYMENT_READY", pgPayment.getStatus());
-        
+       
         if(resultCount != 1) {
         	throw new BusinessException(ErrorCode.ORDER_STATUS_UPDATE_FAILED, "orderId=" + orderId);                    
         }

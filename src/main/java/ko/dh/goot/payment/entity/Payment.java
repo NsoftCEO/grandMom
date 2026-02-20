@@ -1,4 +1,4 @@
-package ko.dh.goot.payment.dto;
+package ko.dh.goot.payment.entity;
 
 import java.time.LocalDateTime;
 

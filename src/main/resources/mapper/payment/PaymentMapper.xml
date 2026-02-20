@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="ko.dh.goot.payment.dao.PaymentMapper">
-<resultMap id="paymentResultMap" type="ko.dh.goot.payment.dto.Payment">
+<resultMap id="paymentResultMap" type="ko.dh.goot.payment.entity.Payment">
     <id     property="paymentId"         column="payment_id"/>
     <result property="orderId"           column="order_id"/>
     <result property="paymentProvider"   column="payment_provider"/>
@@ -46,11 +46,11 @@
         )
 </insert>
 
-    <select id="selectByOrderId" parameterType="long" resultType="ko.dh.goot.payment.dto.Payment">
+    <select id="selectByOrderId" parameterType="long" resultType="ko.dh.goot.payment.entity.Payment">
         SELECT * FROM payment WHERE order_id = #{orderId}
     </select>
 
-    <update id="updatePaymentStatus" parameterType="ko.dh.goot.payment.dto.Payment">
+    <update id="updatePaymentStatus" parameterType="ko.dh.goot.payment.entity.Payment">
         UPDATE payment
         SET payment_status = #{paymentStatus},
             approved_at = #{approvedAt},
