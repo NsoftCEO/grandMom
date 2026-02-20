@@ -44,7 +44,10 @@ public class SecurityConfig {
                 .requestMatchers(
                 		"/api/auth/**",
                 		"/oauth2/**",
-                		"/payment/handlePaymentWebhook"
+                		"/payment/handlePaymentWebhook",
+                		"/product/productList/**",
+                		"/product/detail/**",
+                		"/**" // 개발중이니 경로 전체 허용
                 		).permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()

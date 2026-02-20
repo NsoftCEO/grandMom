@@ -100,6 +100,7 @@ async function prepareOrder() {
 	/* ===============================
 	 * 주문 데이터 구성 (중요)
 	 * =============================== */
+	alert(Number($('#totalPrice').attr('data-total-price')));
 	const orderData = {
 		optionId: Number($form.find('[name="optionId"]').val()),
 		productId: Number($form.find('[name="productId"]').val()),
@@ -109,7 +110,7 @@ async function prepareOrder() {
 		address: $form.find('[name="address"]').val(),
 		memo: $form.find('[name="memo"]').val(),
 		orderName: $('#productName').data('productname'),
-		clientTotalAmount: Number($('#totalPrice').data('totalPrice')),
+		clientTotalAmount: Number($('#totalPrice').attr('data-total-price')),
 
 	};
 
@@ -141,16 +142,16 @@ async function prepareOrder() {
  * 👉 totalAmount 포함 (서버 결정)
  */
 async function requestPaymentParams(orderId) {
-	const res = await fetch("/order/createPaymentParams", {
+	const paymentParamResponse = await fetch("/order/createPaymentParams", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ orderId })
 	});
 
-	if (!res.ok) {
-		const error = await res.json();
+	if (!paymentParamResponse.ok) {
+		const error = await paymentParamResponse.json();
 		throw new Error(error.message || "결제 요청 생성 실패");
 	}
 
-	return await res.json();
+	return await paymentParamResponse.json();
 }
