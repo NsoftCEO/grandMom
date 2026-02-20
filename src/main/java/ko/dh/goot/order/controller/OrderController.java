@@ -19,6 +19,8 @@ import ko.dh.goot.order.dto.OrderProductView;
 import ko.dh.goot.order.dto.OrderRequest;
 import ko.dh.goot.order.dto.OrderResponse;
 import ko.dh.goot.order.service.OrderService;
+import ko.dh.goot.payment.dto.PaymentParamRequest;
+import ko.dh.goot.payment.dto.PaymentParamResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 @Log4j2
@@ -67,12 +69,10 @@ public class OrderController {
      * 2️. 결제 파라미터 생성
      * =============================== */
     @PostMapping("/createPaymentParams")
-    public ResponseEntity<Map<String, Object>> requestPayment(@RequestBody Map<String, Long> body) {
-        Long orderId = body.get("orderId");
+    public ResponseEntity<PaymentParamResponse> requestPayment(@Valid @RequestBody PaymentParamRequest request) {
+        PaymentParamResponse response = orderService.createPaymentParams(request.getOrderId());
 
-        Map<String, Object> paymentParams = orderService.createPaymentParams(orderId);
-
-        return ResponseEntity.ok(paymentParams);
+        return ResponseEntity.ok(response);
     }
 
     

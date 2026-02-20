@@ -1,33 +1,28 @@
 package ko.dh.goot.order.service;
 
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.ibatis.javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-
 import ko.dh.goot.common.exception.BusinessException;
 import ko.dh.goot.common.exception.ErrorCode;
-import ko.dh.goot.order.dao.OrderEntityMapper;
-import ko.dh.goot.order.dao.OrderItemEntityMapper;
 import ko.dh.goot.order.dao.OrderItemMapper;
 import ko.dh.goot.order.dao.OrderMapper;
 import ko.dh.goot.order.domain.Order;
 import ko.dh.goot.order.domain.OrderItem;
-import ko.dh.goot.order.dto.OrderProduct;
+import ko.dh.goot.order.domain.OrderStatus;
 import ko.dh.goot.order.dto.OrderProductView;
 import ko.dh.goot.order.dto.OrderRequest;
 import ko.dh.goot.order.dto.OrderResponse;
 import ko.dh.goot.order.dto.ProductOptionForOrder;
 import ko.dh.goot.order.entity.OrderEntity;
 import ko.dh.goot.order.entity.OrderItemEntity;
-import ko.dh.goot.payment.domain.RefundStatus;
-import ko.dh.goot.product.dao.ProductMapper;
+import ko.dh.goot.payment.dto.PaymentParamResponse;
 import ko.dh.goot.product.dao.ProductOptionMapper;
-import ko.dh.goot.product.dto.ProductDetail;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -102,7 +97,7 @@ public class OrderService {
 	            .userId(order.getUserId())
 	            .orderName(order.getOrderName())
 	            .totalAmount(order.getTotalAmount())
-	            .orderStatus(order.getOrderStatus().name())
+	            .orderStatus(order.getOrderStatus())
 	            .receiverName(order.getReceiverName())
 	            .receiverPhone(order.getReceiverPhone())
 	            .receiverAddress(order.getReceiverAddress())
@@ -143,7 +138,7 @@ public class OrderService {
 	/* ===============================
      * 결제 파라미터 생성
      * =============================== */
-    public Map<String, Object> createPaymentParams(Long orderId) {
+    public PaymentParamResponse createPaymentParams(Long orderId) {
 
         Order order = orderMapper.selectOrder(orderId);
 
@@ -151,21 +146,21 @@ public class OrderService {
         	throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
         }
 
-        if (!"PAYMENT_READY".equals(order.getOrderStatus())) {
+        if (OrderStatus.PAYMENT_READY != order.getOrderStatus()) {
         	throw new BusinessException(ErrorCode.ORDER_INVALID_STATUS);
         }
 
-        return Map.of(
-                "storeId", storeId,
-                "channelKey", channelKey,
-                "paymentId", "payment-" + java.util.UUID.randomUUID(),
-                "orderName", order.getOrderName(),
-                "totalAmount", order.getTotalAmount(),
-                "currency", "KRW",
-                "payMethod", "EASY_PAY",
-                "isTestChannel", true,
-                "customData", Map.of("orderId", orderId.toString())
-        );
+        return PaymentParamResponse.builder()
+                .storeId(storeId)
+                .channelKey(channelKey)
+                .paymentId("payment-" + UUID.randomUUID())
+                .orderName(order.getOrderName())
+                .totalAmount(order.getTotalAmount())
+                .currency("KRW")
+                .payMethod("EASY_PAY")
+                .isTestChannel(true)
+                .customData(Map.of("orderId", orderId.toString()))
+                .build();
     }
 
 	public int changeOrderStatus(Long orderId, String beforeStatus, String afterStatus) {
