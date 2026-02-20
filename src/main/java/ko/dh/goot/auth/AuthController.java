@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
-
+	/*
     private final AuthService authService;
 
     @PostMapping("/login")
@@ -30,5 +30,6 @@ public class AuthController {
             Map.of("accessToken", authService.refresh(req.getRefreshToken()))
         );
     }
+    */
 }
 

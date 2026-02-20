@@ -140,14 +140,14 @@ public class OrderService {
      * =============================== */
     public PaymentParamResponse createPaymentParams(Long orderId) {
 
-        Order order = orderMapper.selectOrder(orderId);
+        OrderEntity order = orderMapper.selectOrder(orderId);
 
         if (order == null) {
-        	throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
+        	throw new BusinessException(ErrorCode.ORDER_NOT_FOUND,"주문번호: " + orderId);
         }
 
         if (OrderStatus.PAYMENT_READY != order.getOrderStatus()) {
-        	throw new BusinessException(ErrorCode.ORDER_INVALID_STATUS);
+        	throw new BusinessException(ErrorCode.ORDER_INVALID_STATUS, "현재 주문상태: " + order.getOrderStatus());
         }
 
         return PaymentParamResponse.builder()

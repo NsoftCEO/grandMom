@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-
+/*
     private final AuthMapper authMapper;
     private final BCryptPasswordEncoder encoder;
     private final JwtProvider jwtProvider;
@@ -53,5 +53,5 @@ public class AuthService {
 
         UserVO user = authMapper.findByUserId(userId);
         return jwtProvider.createAccessToken(user.getUserId(), user.getRole());
-    }
+    }*/
 }

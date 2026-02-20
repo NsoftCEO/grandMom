@@ -19,7 +19,6 @@
     <result property="color" column="color"/>
     <result property="size" column="size"/>
 
-    <result property="optionInfo" column="option_info"/>
     <result property="refundStatus" column="refund_status"/>
 
     <result property="createdAt" column="created_at"/>
@@ -40,7 +39,6 @@
         p.product_name,
         po.color,
         po.size,
-        oi.option_info,
         oi.refund_status,
         oi.created_at
     FROM order_item oi
@@ -51,7 +49,7 @@
 </select>
 
 
-<insert id="insertOrderItem" parameterType="ko.dh.goot.order.domain.OrderItemEntity"
+<insert id="insertOrderItem" parameterType="ko.dh.goot.order.entity.OrderItemEntity"
             useGeneratedKeys="true" keyProperty="orderItemId">
 
         INSERT INTO order_item (
@@ -64,7 +62,6 @@
             total_price,
             color,
             size,
-            option_info,
             refund_status
         ) VALUES (
             #{orderId},
@@ -76,7 +73,6 @@
             #{totalPrice},
             #{color},
             #{size},
-            #{optionInfo},
             #{refundStatus}
         )
 </insert>

@@ -1,9 +1,17 @@
 package ko.dh.goot.order.entity;
 
+import java.time.LocalDateTime;
+
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class OrderItemEntity {
 
@@ -18,4 +26,6 @@ public class OrderItemEntity {
     private String color;
     private String size;
     private String refundStatus;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

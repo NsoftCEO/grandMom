@@ -13,8 +13,7 @@ import ko.dh.goot.common.exception.ErrorCode;
 import ko.dh.goot.common.exception.WebhookException;
 import ko.dh.goot.order.dao.OrderItemMapper;
 import ko.dh.goot.order.dao.OrderMapper;
-import ko.dh.goot.order.domain.Order;
-import ko.dh.goot.order.domain.OrderItem;
+import ko.dh.goot.order.entity.OrderEntity;
 import ko.dh.goot.order.entity.OrderItemEntity;
 import ko.dh.goot.order.service.OrderService;
 import ko.dh.goot.payment.dao.PaymentMapper;
@@ -112,7 +111,7 @@ public class PaymentService {
         Long orderId = pgPayment.getOrderId();
 
         /* ===== 4. 주문 조회 ===== */
-        Order order = orderMapper.selectOrder(orderId);
+        OrderEntity order = orderMapper.selectOrder(orderId);
         if (order == null) {
         	throw new BusinessException(ErrorCode.ORDER_NOT_FOUND, "orderId=" + orderId);
         }
