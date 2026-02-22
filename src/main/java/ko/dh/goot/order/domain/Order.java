@@ -1,30 +1,59 @@
 package ko.dh.goot.order.domain;
 
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.Getter;
-
+@Entity
+@Table(name = "orders")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Order {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long orderId;
 
-    private final String userId;
-    private final String orderName;
-    private final String receiverName;
-    private final String receiverPhone;
-    private final String receiverAddress;
-    private final String deliveryMemo;
+    @Column(nullable = false)
+    private String userId;
 
+    @Column(nullable = false)
+    private String orderName;
+
+    @Column(nullable = false)
     private int totalAmount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private OrderStatus orderStatus;
 
-    private final LocalDateTime createdAt;
+    @Column(nullable = false)
+    private String receiverName;
+
+    @Column(nullable = false)
+    private String receiverPhone;
+
+    @Column(nullable = false)
+    private String receiverAddress;
+
+    private String deliveryMemo;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
+
     private LocalDateTime updatedAt;
 
-    private final List<OrderItem> orderItems = new ArrayList<>();
+    @OneToMany(
+            mappedBy = "order",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<OrderItem> orderItems = new ArrayList<>();
 
     private Order(String userId,
                   String orderName,
@@ -41,8 +70,9 @@ public class Order {
         this.deliveryMemo = deliveryMemo;
 
         this.totalAmount = 0;
-        this.orderStatus = OrderStatus.PAYMENT_READY;       
+        this.orderStatus = OrderStatus.PAYMENT_READY;
         this.createdAt = LocalDateTime.now();
+        this.updatedAt = this.createdAt;
     }
 
     public static Order create(String userId,
@@ -52,23 +82,22 @@ public class Order {
                                String receiverAddress,
                                String deliveryMemo) {
 
-        return new Order(userId, orderName,
-                receiverName, receiverPhone,
-                receiverAddress, deliveryMemo);
-    }
-
-    public void assignId(Long orderId) {
-        this.orderId = orderId;
+        return new Order(userId,
+                orderName,
+                receiverName,
+                receiverPhone,
+                receiverAddress,
+                deliveryMemo);
     }
 
     public void addItem(OrderItem item) {
-        this.orderItems.add(item);
+        orderItems.add(item);
+        item.setOrder(this);
         this.totalAmount += item.getTotalPrice();
     }
 
-    /*
     public void completePayment() {
-        if (orderStatus != OrderStatus.PAYMENT_READY) {
+        if (this.orderStatus != OrderStatus.PAYMENT_READY) {
             throw new IllegalStateException("결제 불가 상태");
         }
         this.orderStatus = OrderStatus.PAID;
@@ -76,11 +105,10 @@ public class Order {
     }
 
     public void cancel() {
-        if (orderStatus == OrderStatus.CANCELLED) {
+        if (this.orderStatus == OrderStatus.CANCELLED) {
             throw new IllegalStateException("이미 취소됨");
         }
         this.orderStatus = OrderStatus.CANCELLED;
         this.updatedAt = LocalDateTime.now();
-    }*/
-
+    }
 }

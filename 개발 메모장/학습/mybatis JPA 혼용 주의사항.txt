@@ -1,0 +1,12 @@
+mybatis JPA 혼용 주의사항
+
+1. mybatis는 쿼리실행하면 바로 실행되고, 트랜잭션이 끝나면 commit or rollback 하지만,
+JPA는 영속성 컨텍스트 저장 후 트랜잭션 끝날 때 flush 한다.
+
+2. 오류나는 예시
+1) JPA로 row 업데이트(영속성 컨텍스트에 저장, 아직 row 업데이트 안된상황)
+2) mybatis로 해당 row 조회(row가 아직 업데이트 되지 않았기때문에 업데이트 전 row가 조회됨)
+
+3. 추천 사용방식
+쓰기 → JPA
+읽기(복잡한 쿼리) → MyBatis
