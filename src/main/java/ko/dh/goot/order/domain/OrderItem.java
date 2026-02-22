@@ -1,41 +1,66 @@
 package ko.dh.goot.order.domain;
 
-import java.time.LocalDateTime;
-
+import jakarta.persistence.*;
 import ko.dh.goot.common.exception.BusinessException;
 import ko.dh.goot.common.exception.ErrorCode;
 import ko.dh.goot.payment.domain.RefundStatus;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "order_item")
 @Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class OrderItem {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long orderItemId;
 
-    private final Long productId;
-    private final Long optionId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false)
+    private Order order;
 
-    private final String productName;
-    private final int unitPrice;
-    private final int quantity;
-    private final int totalPrice;
+    @Column(nullable = false)
+    private Long productId;
 
-    private final String color;
-    private final String size;
-    
-    private final RefundStatus refundStatus;
-    private final LocalDateTime createdAt;
+    @Column(nullable = false)
+    private Long optionId;
 
-    private OrderItem(
-            Long productId,
-            Long optionId,
-            String productName,
-            int unitPrice,
-            int quantity,
-            String color,
-            String size
-    ) {
-        if (quantity <= 0) throw new BusinessException(ErrorCode.ORDER_INVALID_QUANTITY);
+    @Column(nullable = false)
+    private String productName;
+
+    @Column(nullable = false)
+    private int unitPrice;
+
+    @Column(nullable = false)
+    private int quantity;
+
+    @Column(nullable = false)
+    private int totalPrice;
+
+    private String color;
+    private String size;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RefundStatus refundStatus;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
+
+    private OrderItem(Long productId,
+                      Long optionId,
+                      String productName,
+                      int unitPrice,
+                      int quantity,
+                      String color,
+                      String size) {
+
+    	if (quantity <= 0) throw new BusinessException(ErrorCode.ORDER_INVALID_QUANTITY);
         if (unitPrice < 0) throw new BusinessException(ErrorCode.ORDER_INVALID_UNIT_PRICE);
 
         this.productId = productId;
@@ -51,33 +76,23 @@ public class OrderItem {
     }
 
     public static OrderItem create(Long productId,
-            Long optionId,
-            String productName,
-            int unitPrice,
-            int quantity,
-            String color,
-            String size) {
-    	
-    	return new OrderItem(productId, optionId, productName,
-    	unitPrice, quantity, color, size);
-    }
-    
-    	
+                                   Long optionId,
+                                   String productName,
+                                   int unitPrice,
+                                   int quantity,
+                                   String color,
+                                   String size) {
 
-
-
-    /*
-    public void changeQuantity(int newQuantity) {
-        if (newQuantity <= 0) throw new BusinessException(ErrorCode.ORDER_INVALID_QUANTITY);
-        this.quantity = newQuantity;
-        this.totalPrice = this.unitPrice * newQuantity;
+        return new OrderItem(productId,
+                optionId,
+                productName,
+                unitPrice,
+                quantity,
+                color,
+                size);
     }
 
-    // ===== 환불 로직은 나중에 주석 처리 =====
-    
-    public void requestRefund() {
-        if (this.refundStatus != RefundStatus.NONE) throw new BusinessException(ErrorCode.INVALID_REFUND_STATE);
-        this.refundStatus = RefundStatus.REQUESTED;
+    protected void setOrder(Order order) {
+        this.order = order;
     }
-    */
 }

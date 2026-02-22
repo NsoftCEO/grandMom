@@ -12,6 +12,7 @@ import ko.dh.goot.common.exception.BusinessException;
 import ko.dh.goot.common.exception.ErrorCode;
 import ko.dh.goot.order.dao.OrderItemMapper;
 import ko.dh.goot.order.dao.OrderMapper;
+import ko.dh.goot.order.dao.OrderRepository;
 import ko.dh.goot.order.domain.Order;
 import ko.dh.goot.order.domain.OrderItem;
 import ko.dh.goot.order.domain.OrderStatus;
@@ -37,6 +38,7 @@ public class OrderService {
 	
 	private final OrderMapper orderMapper;
 	private final OrderItemMapper orderItemMapper;
+	private final OrderRepository orderRepository ;
 	private final ProductOptionMapper productOptionMapper;	
 	public OrderProductView selectOrderProduct(Long optionId, int quantity) throws NotFoundException {
 
@@ -80,7 +82,7 @@ public class OrderService {
 	            orderRequest.getAddress(),
 	            orderRequest.getMemo()
 	    );
-	    
+
 	    OrderItem item = OrderItem.create(
 	            product.getProductId(),
 	            product.getOptionId(),
@@ -90,47 +92,11 @@ public class OrderService {
 	            product.getColor(),
 	            product.getSize()
 	    );
-	    
-	    order.addItem(item);
-	    
-	    OrderEntity orderEntity = OrderEntity.builder()
-	            .userId(order.getUserId())
-	            .orderName(order.getOrderName())
-	            .totalAmount(order.getTotalAmount())
-	            .orderStatus(order.getOrderStatus())
-	            .receiverName(order.getReceiverName())
-	            .receiverPhone(order.getReceiverPhone())
-	            .receiverAddress(order.getReceiverAddress())
-	            .deliveryMemo(order.getDeliveryMemo())
-	            .build();
-	    
-	    int insertOrder = orderMapper.insertOrder(orderEntity);
-	    
-	    if(insertOrder != 1 || orderEntity.getOrderId() == null) {
-	    	throw new BusinessException(ErrorCode.ORDER_CREATE_FAILED);
-	    }
-	    
-	    order.assignId(orderEntity.getOrderId());
-	    
-	    OrderItemEntity itemEntity = OrderItemEntity.builder()
-	            .orderId(order.getOrderId())
-	            .productId(item.getProductId())
-	            .optionId(item.getOptionId())
-	            .productName(item.getProductName())
-	            .unitPrice(item.getUnitPrice())
-	            .quantity(item.getQuantity())
-	            .totalPrice(item.getTotalPrice())
-	            .color(item.getColor())
-	            .size(item.getSize())
-	            .refundStatus(item.getRefundStatus().name())
-	            .build();
 
-	    int insertOrderItem = orderItemMapper.insertOrderItem(itemEntity);
-	    
-	    if(insertOrderItem != 1) {
-	    	throw new BusinessException(ErrorCode.ORDER_ITEM_CREATE_FAILED);
-	    }
-	    
+	    order.addItem(item);
+
+	    orderRepository.save(order);
+
 	    return new OrderResponse(order.getOrderId(), order.getTotalAmount());
 	}
 
