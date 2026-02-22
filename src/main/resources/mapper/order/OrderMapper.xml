@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="ko.dh.goot.order.dao.OrderMapper">
 
-<resultMap id="orderResultMap"
+<!--<resultMap id="orderResultMap"
            type="ko.dh.goot.order.entity.OrderEntity">
 
     <id property="orderId" column="order_id"/>
@@ -21,7 +21,7 @@
     <result property="deliveryMemo" column="delivery_memo"/>
     <result property="createdAt" column="created_at"/>
     <result property="updatedAt" column="updated_at"/>
-</resultMap>
+</resultMap>-->
 
 <resultMap id="orderProductMap" type="OrderProductView">
     <id property="optionId" column="option_id"/>
@@ -34,7 +34,7 @@
     <result property="thumbnailUrl" column="thumbnail_url"/>
 </resultMap>
 
-	<select id="selectOrder" parameterType="long" resultMap="orderResultMap">
+	<select id="selectOrder" parameterType="long" resultType="OrderEntity">
         SELECT
             order_id,
             user_id,
