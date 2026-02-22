@@ -1,0 +1,107 @@
+260223 todo
+
+웹훅 PAID 아닐때 처리
+
+// ... existing code ...
+    @Value("${portone.store-id}")
+    private String storeId;
+
+    @Value("${portone.api-secret}")
+    private String apiSecret;
+    
+    private static final String TRANSACTION_PAID = "Transaction.Paid";
+    private static final String TRANSACTION_FAILED = "Transaction.Failed";
+    private static final String TRANSACTION_CANCELLED = "Transaction.Cancelled";
+
+    // 웹훅에서 500을 return하면 웹훅 수백 번 재전송 따라서 실패했어도 DB에 남기고, 200을 준다.
+    public void handlePaymentWebhook(String payload, String webhookId, String webhookSignature, String webhookTimestamp) {
+// ... existing code ...
+        try {       
+            
+            WebhookPayload payloadData = objectMapper.readValue(payload, WebhookPayload.class);
+
+            log.info("[Webhook] payload={}", payloadData);
+                    
+            String webhookType = payloadData.getType();
+            String paymentId = payloadData.getData() != null ? payloadData.getData().getPaymentId() : null;
+            
+            if (paymentId == null) {
+                throw new WebhookException(ErrorCode.WEBHOOK_INVALID_PAYLOAD, "paymentId is null. payloadData=" + payloadData);
+            }
+
+            if (TRANSACTION_PAID.equals(webhookType)) {
+                /* ===== 1. 멱등성 (가장 먼저) ===== */
+                if (paymentMapper.existsByPaymentId(paymentId) > 0) {
+                    log.info("이미 처리된 결제. paymentId={}", paymentId);
+                    return;
+                }
+                confirmPaymentAndCompleteOrder(paymentId);
+            } else if (TRANSACTION_FAILED.equals(webhookType) || TRANSACTION_CANCELLED.equals(webhookType)) {
+                // 결제 실패 또는 취소 웹훅 수신 시 상태 동기화
+                syncFailedOrCancelledPayment(paymentId);
+            } else {
+                log.info("[Webhook] Ignore type={}", webhookType);
+                return; // 정상 return, 200리턴하여 웹훅요청 막음
+            }
+            
+        } catch (JsonProcessingException e) {
+            log.error("🚨 [Webhook] JSON 파싱 실패. payload={}", payload, e);
+// ... existing code ...
+        // ===== 9. 주문 상태 변경 =====
+        int resultCount = orderService.changeOrderStatus(orderId,"PAYMENT_READY", pgPayment.getStatus());
+       
+        if(resultCount != 1) {
+            throw new BusinessException(ErrorCode.ORDER_STATUS_UPDATE_FAILED, "orderId=" + orderId);                    
+        }
+
+        
+    }
+    
+    public void syncFailedOrCancelledPayment(String paymentId) {
+        /* ===== 포트원 결제 내역 조회 ===== */
+        PortOnePaymentResponse pgPayment = portoneApiService.portonePaymentDetails(paymentId);
+
+        if (pgPayment == null) {
+            log.warn("[Webhook] 포트원 결제 내역을 찾을 수 없습니다. paymentId={}", paymentId);
+            return;
+        }
+
+        syncFailedOrCancelledPaymentInternal(pgPayment);
+    }
+
+    @Transactional
+    public void syncFailedOrCancelledPaymentInternal(PortOnePaymentResponse pgPayment) {
+        Long orderId = pgPayment.getOrderId();
+
+        OrderEntity order = orderMapper.selectOrder(orderId);
+        if (order == null) {
+            log.warn("[Webhook] 주문 내역을 찾을 수 없습니다. orderId={}", orderId);
+            return;
+        }
+
+        // 이미 실패나 취소 상태면 무시 (멱등성 보장)
+        if ("PAYMENT_FAILED".equals(order.getStatus()) || "CANCELLED".equals(order.getStatus())) {
+            log.info("[Webhook] 이미 취소/실패 처리된 주문입니다. orderId={}, status={}", orderId, order.getStatus());
+            return;
+        }
+
+        // 포트원 결제 상태에 따라 타겟 상태 결정 (결제 실패 vs 결제 완료 후 취소)
+        String pgStatus = pgPayment.getStatus(); // "FAILED", "CANCELLED" 등
+        String targetStatus = "CANCELLED".equals(pgStatus) ? "CANCELLED" : "PAYMENT_FAILED";
+
+        // 상태 변경
+        int resultCount = orderService.changeOrderStatus(orderId, order.getStatus(), targetStatus);
+        
+        if (resultCount == 1 && "CANCELLED".equals(targetStatus)) {
+            // [주의] 결제 완료(PAID) 시점에 재고를 차감했다면, 취소(CANCELLED) 시점에는 재고를 복구해 주어야 합니다.
+            // OrderItemEntity orderItem = orderItemMapper.selectOrderItemByOrderId(orderId);
+            // if (orderItem != null) {
+            //     productOptionService.increaseStock(orderItem.getOptionId(), orderItem.getQuantity());
+            // }
+            log.info("[Webhook] 결제 취소에 따른 주문 상태 변경 완료. orderId={}", orderId);
+        } else if (resultCount == 1) {
+            log.info("[Webhook] 결제 실패에 따른 주문 상태 변경 완료. orderId={}", orderId);
+        }
+    }
+
+}

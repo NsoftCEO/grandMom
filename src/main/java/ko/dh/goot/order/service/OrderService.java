@@ -71,8 +71,9 @@ public class OrderService {
 	    	throw new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND);
 	    }
 	    
-	    if (product.getStockQuantity() < orderRequest.getQuantity())
+	    if (product.getStockQuantity() < orderRequest.getQuantity()) {
 	        throw new BusinessException(ErrorCode.OUT_OF_STOCK, "현재 재고: " + product.getStockQuantity());
+	    }
 
 	    Order order = Order.create(
 	            userId,
