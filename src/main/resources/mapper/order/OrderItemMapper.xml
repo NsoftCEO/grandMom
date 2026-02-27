@@ -3,29 +3,8 @@
 
 <mapper namespace="ko.dh.goot.order.dao.OrderItemMapper">
 
- <resultMap id="orderItemResultMap" type="ko.dh.goot.order.entity.OrderItemEntity">
-    <id property="orderItemId" column="order_item_id"/>
 
-    <result property="orderId" column="order_id"/>
-    <result property="productId" column="product_id"/>
-    <result property="optionId" column="option_id"/>
-
-    <result property="productName" column="product_name"/>
-    <result property="unitPrice" column="unit_price"/>
-
-    <result property="quantity" column="quantity"/>
-    <result property="totalPrice" column="total_price"/>
-
-    <result property="color" column="color"/>
-    <result property="size" column="size"/>
-
-    <result property="refundStatus" column="refund_status"/>
-
-    <result property="createdAt" column="created_at"/>
-</resultMap>
-
-
-<select id="selectOrderItemByOrderId" parameterType="long" resultMap="orderItemResultMap">
+<select id="selectOrderItemByOrderId" parameterType="long" resultType="OrderItem">
 
     SELECT
         oi.order_item_id,
@@ -49,7 +28,7 @@
 </select>
 
 
-<insert id="insertOrderItem" parameterType="ko.dh.goot.order.entity.OrderItemEntity"
+<insert id="insertOrderItem" parameterType="OrderItemRecord"
             useGeneratedKeys="true" keyProperty="orderItemId">
 
         INSERT INTO order_item (

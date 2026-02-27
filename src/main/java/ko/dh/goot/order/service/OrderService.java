@@ -1,8 +1,5 @@
 package ko.dh.goot.order.service;
 
-import java.util.Map;
-import java.util.UUID;
-
 import org.apache.ibatis.javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -20,8 +17,7 @@ import ko.dh.goot.order.dto.OrderProductView;
 import ko.dh.goot.order.dto.OrderRequest;
 import ko.dh.goot.order.dto.OrderResponse;
 import ko.dh.goot.order.dto.ProductOptionForOrder;
-import ko.dh.goot.order.entity.OrderEntity;
-import ko.dh.goot.order.entity.OrderItemEntity;
+import ko.dh.goot.order.persistence.OrderRecord;
 import ko.dh.goot.payment.dto.PaymentParamResponse;
 import ko.dh.goot.product.dao.ProductOptionMapper;
 import lombok.RequiredArgsConstructor;
@@ -107,27 +103,23 @@ public class OrderService {
      * =============================== */
     public PaymentParamResponse createPaymentParams(Long orderId) {
 
-        OrderEntity order = orderMapper.selectOrder(orderId);
+    	OrderRecord order = orderMapper.selectOrder(orderId);
 
         if (order == null) {
         	throw new BusinessException(ErrorCode.ORDER_NOT_FOUND,"주문번호: " + orderId);
         }
 
-        if (OrderStatus.PAYMENT_READY != order.getOrderStatus()) {
-        	throw new BusinessException(ErrorCode.ORDER_INVALID_STATUS, "현재 주문상태: " + order.getOrderStatus());
+        if (OrderStatus.PAYMENT_READY != order.orderStatus()) {
+        	throw new BusinessException(ErrorCode.ORDER_INVALID_STATUS, "현재 주문상태: " + order.orderStatus());
         }
 
-        return PaymentParamResponse.builder()
-                .storeId(storeId)
-                .channelKey(channelKey)
-                .paymentId("payment-" + UUID.randomUUID())
-                .orderName(order.getOrderName())
-                .totalAmount(order.getTotalAmount())
-                .currency("KRW")
-                .payMethod("EASY_PAY")
-                .isTestChannel(true)
-                .customData(Map.of("orderId", orderId.toString()))
-                .build();
+        return PaymentParamResponse.of(
+                storeId,
+                channelKey,
+                order.orderName(),
+                order.totalAmount(),
+                orderId
+        );
     }
 
 	public int changeOrderStatus(Long orderId, String beforeStatus, String afterStatus) {

@@ -24,32 +24,19 @@ public class OrderItem {
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    @Column(nullable = false)
     private Long productId;
-
-    @Column(nullable = false)
     private Long optionId;
-
-    @Column(nullable = false)
     private String productName;
-
-    @Column(nullable = false)
-    private int unitPrice;
-
-    @Column(nullable = false)
+    private long unitPrice;
     private int quantity;
-
-    @Column(nullable = false)
     private int totalPrice;
 
     private String color;
     private String size;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private RefundStatus refundStatus;
-
-    @Column(nullable = false)
+    
     private LocalDateTime createdAt;
 
     private OrderItem(Long productId,

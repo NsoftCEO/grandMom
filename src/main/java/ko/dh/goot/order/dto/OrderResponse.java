@@ -9,6 +9,6 @@ import lombok.Setter;
 @AllArgsConstructor
 public class OrderResponse {
     private Long orderId;
-    private int expectedAmount; // 서버가 최종 확정한 금액
+    private long expectedAmount; // 서버가 최종 확정한 금액
 
 }

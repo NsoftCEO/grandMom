@@ -23,5 +23,10 @@ public class ProductOptionService {
         			"optionId=" + optionId + ", quantity=" + orderQuantity);
         }
     }
+
+	public Object increaseStock(Long optionId, int quantity) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 	
 }
