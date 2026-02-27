@@ -18,34 +18,16 @@ public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long orderId;
-
-    @Column(nullable = false)
     private String userId;
-
-    @Column(nullable = false)
     private String orderName;
-
-    @Column(nullable = false)
-    private int totalAmount;
-
+    private long totalAmount;
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private OrderStatus orderStatus;
-
-    @Column(nullable = false)
     private String receiverName;
-
-    @Column(nullable = false)
     private String receiverPhone;
-
-    @Column(nullable = false)
     private String receiverAddress;
-
     private String deliveryMemo;
-
-    @Column(nullable = false)
     private LocalDateTime createdAt;
-
     private LocalDateTime updatedAt;
 
     @OneToMany(

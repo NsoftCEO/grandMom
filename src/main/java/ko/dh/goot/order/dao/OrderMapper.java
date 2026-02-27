@@ -4,13 +4,13 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import ko.dh.goot.order.dto.OrderProductView;
-import ko.dh.goot.order.entity.OrderEntity;
+import ko.dh.goot.order.persistence.OrderRecord;
 
 @Mapper
 public interface OrderMapper {
 
-	OrderEntity selectOrder(Long orderId);
-	int insertOrder(OrderEntity orderEntity);
+	OrderRecord selectOrder(Long orderId);
+	int insertOrder(OrderRecord orderEntity);
 	int selectOrderExpectedAmount(Long orderId);
 	int changeOrderStatus(
 	        @Param("orderId") Long orderId,

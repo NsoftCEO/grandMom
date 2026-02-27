@@ -11,7 +11,7 @@ import org.apache.ibatis.type.MappedJdbcTypes;
 import org.apache.ibatis.type.MappedTypes;
 
 import ko.dh.goot.payment.domain.RefundStatus;
-
+/*
 @MappedTypes(RefundStatus.class)
 @MappedJdbcTypes(JdbcType.VARCHAR)
 public class RefundStatusTypeHandler extends BaseTypeHandler<RefundStatus> {
@@ -44,3 +44,4 @@ public class RefundStatusTypeHandler extends BaseTypeHandler<RefundStatus> {
         return RefundStatus.from(cs.getString(columnIndex));
     }
 }
+*/

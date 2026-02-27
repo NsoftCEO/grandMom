@@ -34,7 +34,7 @@
     <result property="thumbnailUrl" column="thumbnail_url"/>
 </resultMap>
 
-	<select id="selectOrder" parameterType="long" resultType="OrderEntity">
+	<select id="selectOrder" parameterType="long" resultType="OrderRecord">
         SELECT
             order_id,
             user_id,
