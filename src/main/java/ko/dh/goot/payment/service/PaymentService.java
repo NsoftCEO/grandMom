@@ -72,7 +72,7 @@ public class PaymentService {
             }   	
         	
     	} catch (WebhookException | BusinessException e) {
-            // 수정: WebhookException(파싱/데이터오류)과 BusinessException은 200 반환으로 무한 재시도 방어
+            // WebhookException(파싱/데이터오류)과 BusinessException은 200 반환으로 무한 재시도 방어
             log.warn("[Webhook] warning error (ignored). message={}", e.getMessage(), e);
             return;
         } catch (Exception e) {
@@ -115,7 +115,7 @@ public class PaymentService {
 
         // 3. 결제 도메인(Payment) 생성 및 영속화
         try {
-            // TODO: pgPayment에서 provider, method, paidAt 등을 추출하여 매핑한다고 가정
+        	// 안전한 값 추출 (Null Safe)
         	String provider = pgPayment.getMethod() != null ? pgPayment.getMethod().getProvider() : "unknown";
             String methodType = pgPayment.getMethod() != null ? pgPayment.getMethod().getType() : "unknown";
             String pgTxId = pgPayment.getPgTxId() != null ? pgPayment.getPgTxId() : pgPayment.getId();
@@ -185,8 +185,9 @@ public class PaymentService {
             order.cancel(); 
             
             // [도메인 2] 결제 정보 취소 상태로 변경 (부분 취소/전액 취소 로직 적용)
-            paymentRepository.findByPgTxId(pgPayment.getId()).ifPresent(payment -> {
-                int cancelAmount = pgPayment.getAmount().getCancelled().intValue(); // 포트원에서 내려준 취소된 금액
+            paymentRepository.findById(pgPayment.getId()).ifPresent(payment -> {
+                long cancelAmount = (pgPayment.getAmount() != null && pgPayment.getAmount().getCancelled() != null)
+                        ? pgPayment.getAmount().getCancelled() : 0L;
                 payment.cancel(cancelAmount); // Payment 엔티티 내부에서 상태 및 금액 검증
             });
 

@@ -1,6 +1,10 @@
 package ko.dh.goot.payment.service;
 
+import java.time.Duration;
+
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.http.client.ClientHttpRequestFactorySettings;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -38,11 +42,15 @@ public class PortoneApiService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    public PortoneApiService() {
-        this.restTemplate = new RestTemplate();
-        this.objectMapper = JsonMapper.builder()
-        	    .addModule(new JavaTimeModule())
-        	    .build();
+    public PortoneApiService(RestTemplateBuilder restTemplateBuilder, ObjectMapper objectMapper) {
+        ClientHttpRequestFactorySettings settings = ClientHttpRequestFactorySettings.defaults()
+                .withConnectTimeout(Duration.ofSeconds(5))
+                .withReadTimeout(Duration.ofSeconds(10));
+
+        this.restTemplate = restTemplateBuilder
+                .requestFactorySettings(settings)
+                .build();
+        this.objectMapper = objectMapper;
     }
     
     public PortOnePaymentResponse portonePaymentDetails(String paymentId) {
