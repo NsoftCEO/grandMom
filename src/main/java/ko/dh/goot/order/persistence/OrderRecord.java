@@ -7,7 +7,7 @@ public record OrderRecord(
         Long orderId,
         String userId,
         String orderName,
-        long totalAmount,
+        int totalAmount,
         OrderStatus orderStatus,
         String receiverName,
         String receiverPhone,

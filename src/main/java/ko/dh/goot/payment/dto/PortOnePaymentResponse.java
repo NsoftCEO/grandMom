@@ -39,9 +39,9 @@ public class PortOnePaymentResponse {
     @ToString
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Amount {
-        private Long total;
-        private Long paid;
-        private Long cancelled;
+        private Integer total;
+        private Integer paid;
+        private Integer cancelled;
     }
     
     @Getter
