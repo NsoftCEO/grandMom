@@ -21,8 +21,8 @@ public class Payment {
     private PaymentStatus paymentStatus;
     private String pgTxId;
     private LocalDateTime paidAt;
-    private long amount;
-    private long cancelAmount;
+    private int amount;
+    private int cancelAmount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -32,7 +32,7 @@ public class Payment {
                     String paymentMethodType,
                     String pgTxId,
                     LocalDateTime paidAt,
-                    long amount,
+                    int amount,
                     PaymentStatus paymentStatus) {
 
         this.paymentId = paymentId;
@@ -54,7 +54,7 @@ public class Payment {
                                  String paymentMethodType,
                                  String pgTxId,
                                  LocalDateTime paidAt,
-                                 long amount,
+                                 int amount,
                                  String pgStatus) {
 
         return new Payment(
@@ -69,13 +69,13 @@ public class Payment {
         );
     }
 
-    public void cancel(long cancelAmount) {
+    public void cancel(int cancelAmount) {
         if (this.paymentStatus == PaymentStatus.CANCELLED
                 && this.cancelAmount == this.amount) {
             throw new IllegalStateException("이미 전액 취소된 결제입니다.");
         }
 
-        long newCancelAmount = this.cancelAmount + cancelAmount;
+        int newCancelAmount = this.cancelAmount + cancelAmount;
 
         if (newCancelAmount > this.amount) {
             throw new IllegalArgumentException("취소 금액이 결제 금액을 초과할 수 없습니다.");

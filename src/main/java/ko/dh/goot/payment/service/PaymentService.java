@@ -107,7 +107,7 @@ public class PaymentService {
         Order order = getOrderAggregate(orderId);
 
         // 2. 금액 검증 (위변조 검증의 핵심)
-        long paidAmount = pgPayment.getAmount().getTotal();
+        int paidAmount = pgPayment.getAmount().getTotal();
         if (order.getTotalAmount() != paidAmount) {
             throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH,
                     "주문금액=" + order.getTotalAmount() + ", 결제금액=" + paidAmount);
@@ -186,8 +186,8 @@ public class PaymentService {
             
             // [도메인 2] 결제 정보 취소 상태로 변경 (부분 취소/전액 취소 로직 적용)
             paymentRepository.findById(pgPayment.getId()).ifPresent(payment -> {
-                long cancelAmount = (pgPayment.getAmount() != null && pgPayment.getAmount().getCancelled() != null)
-                        ? pgPayment.getAmount().getCancelled() : 0L;
+                int cancelAmount = (pgPayment.getAmount() != null && pgPayment.getAmount().getCancelled() != null)
+                        ? (int) pgPayment.getAmount().getCancelled() : 0;
                 payment.cancel(cancelAmount); // Payment 엔티티 내부에서 상태 및 금액 검증
             });
 

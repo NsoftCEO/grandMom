@@ -8,7 +8,7 @@ public record PaymentParamResponse(
         String channelKey,
         String paymentId,
         String orderName,
-        Long totalAmount,
+        int totalAmount,
         String currency,
         String payMethod,
         boolean isTestChannel,
@@ -18,7 +18,7 @@ public record PaymentParamResponse(
             String storeId,
             String channelKey,
             String orderName,
-            Long totalAmount,
+            int totalAmount,
             Long orderId
     ) {
         return new PaymentParamResponse(

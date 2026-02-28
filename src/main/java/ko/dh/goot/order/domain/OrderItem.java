@@ -27,7 +27,7 @@ public class OrderItem {
     private Long productId;
     private Long optionId;
     private String productName;
-    private long unitPrice;
+    private int unitPrice;
     private int quantity;
     private int totalPrice;
 
