@@ -11,14 +11,13 @@ public class ProductListItem {
 
     private Long productId;
     private String productName;
-    private Integer price;      // 정가, int의 기본값은 0이므로 INTEGER로
-    private Integer salePrice;  // 할인가 (nullable)
-    private String status;
+    private int price;      // 정가
+    private Integer salePrice;  // 할인가
+    private String productStatus;
     private LocalDateTime createdAt;
-    private Integer totalStock;
+    private int totalStock;
     private String mainImageUrl;
 
-    /** 실제 노출 가격 */
     public int getDisplayPrice() {
         return salePrice != null ? salePrice : price;
     }
@@ -33,4 +32,5 @@ public class ProductListItem {
         if (salePrice == null) return null;
         return (price - salePrice) * 100 / price;
     }
+
 }

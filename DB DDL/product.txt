@@ -7,7 +7,7 @@ CREATE TABLE product (
 
     category_id    BIGINT UNSIGNED COMMENT '카테고리 ID',
 
-    status ENUM('ACTIVE','HIDDEN','STOP')
+    product_status ENUM('ACTIVE','HIDDEN','STOP')
            NOT NULL DEFAULT 'ACTIVE'
            COMMENT '상품 판매 상태',
 

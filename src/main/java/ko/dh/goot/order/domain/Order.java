@@ -1,6 +1,8 @@
 package ko.dh.goot.order.domain;
 
 import jakarta.persistence.*;
+import ko.dh.goot.common.exception.BusinessException;
+import ko.dh.goot.common.exception.ErrorCode;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -73,23 +75,47 @@ public class Order {
     }
 
     public void addItem(OrderItem item) {
-        orderItems.add(item);
+        if (item == null) throw new IllegalArgumentException("item null");
+        if (orderItems.contains(item)) return; // idempotent
         item.setOrder(this);
-        this.totalAmount += item.getTotalPrice();
+        orderItems.add(item);
+        recalculateTotal();
+    }
+    
+    public void removeItem(OrderItem item) {
+        if (orderItems.remove(item)) {
+            item.setOrder(null);
+            recalculateTotal();
+        }
     }
 
-    public void completePayment() {
+    private void recalculateTotal() {
+        this.totalAmount = orderItems.stream()
+            .mapToInt(OrderItem::getTotalPrice)
+            .sum();
+    }
+
+    public void completePayment(int paidAmount) {
+        // 1. 금액 검증 책임 수행
+        if (this.totalAmount != paidAmount) {
+            throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH,
+                    "주문금액=" + this.totalAmount + ", 결제금액=" + paidAmount);
+        }
+        
+        // 2. 상태 검증
         if (this.orderStatus != OrderStatus.PAYMENT_READY) {
             throw new IllegalStateException("결제 불가 상태");
         }
+        
+        // 3. 상태 변경
         this.orderStatus = OrderStatus.PAID;
         this.updatedAt = LocalDateTime.now();
     }
 
     public void cancel() {
-        if (this.orderStatus == OrderStatus.CANCELLED) {
-            throw new IllegalStateException("이미 취소됨");
-        }
+    	if (this.orderStatus != OrderStatus.PAID) {
+    	    throw new IllegalStateException("취소 불가 상태");
+    	}
         this.orderStatus = OrderStatus.CANCELLED;
         this.updatedAt = LocalDateTime.now();
     }

@@ -7,7 +7,7 @@
     <result property="productName" column="product_name"/>
     <result property="price" column="price"/>
     <result property="salePrice" column="sale_price"/>
-    <result property="status" column="status"/>
+    <result property="productStatus" column="product_status"/>
     <result property="createdAt" column="created_at"/>
     <result property="totalStock" column="total_stock"/>
     <result property="mainImageUrl" column="main_image_url"/>
@@ -19,7 +19,7 @@
     <result property="price" column="price"/>
     <result property="salePrice" column="sale_price"/>
     <result property="description" column="description"/>
-    <result property="status" column="status"/>
+    <result property="productStatus" column="product_status"/>
     <result property="createdAt" column="created_at"/>
 
     <association property="category" javaType="ko.dh.goot.product.dto.ProductCategory">
@@ -28,21 +28,6 @@
     </association>
 </resultMap>
 
-<resultMap id="ProductOptionResultMap" type="ko.dh.goot.product.dto.ProductOption">
-    <id property="optionId" column="option_id"/>
-    <result property="productId" column="product_id"/>
-    <result property="color" column="color"/>
-    <result property="size" column="size"/>
-    <result property="stockQuantity" column="stock_quantity"/>
-</resultMap>
-
-<resultMap id="ProductImageResultMap" type="ko.dh.goot.product.dto.ProductImage">
-    <id property="imageId" column="image_id"/>
-    <result property="productId" column="product_id"/>
-    <result property="fileName" column="file_name"/>
-    <result property="imageType" column="image_type"/>
-    <result property="sortOrder" column="sort_order"/>
-</resultMap>
 
 
 
@@ -55,7 +40,7 @@
         p.product_name,
         p.price,
         p.sale_price,
-        p.status,
+        p.product_status,
         p.created_at,
         IFNULL(opt.total_stock, 0) AS total_stock, /* 총 재고, 값이 null이면 0 반환 */
         img.file_name AS main_image_url /* 대표 이미지 */
@@ -79,7 +64,7 @@
        AND img.use_yn = 'Y'
        AND img.sort_order = 0
 
-    WHERE p.status = 'ACTIVE'
+    WHERE p.product_status = 'ACTIVE'
 
     <if test="categoryId != null">
         AND p.category_id = #{categoryId}
@@ -101,7 +86,7 @@
 	    p.price,
 	    p.sale_price,
 	    p.description,
-	    p.status,
+	    p.product_status,
 	
 	    c.category_id,
 	    c.category_name
@@ -110,32 +95,36 @@
 	  ON p.category_id = c.category_id
 	 AND c.use_yn = 'Y'
 	WHERE p.product_id = #{productId}
-	  AND p.status = 'ACTIVE';
+	  AND p.product_status = 'ACTIVE';
 	  
 </select>
 
-<select id="selectProductOptions" parameterType="long" resultMap="ProductOptionResultMap">
+<select id="selectProductOptions" parameterType="long" resultType="ProductOptionRecord">
 
 	SELECT
 	    option_id,
 	    product_id,
 	    color,
 	    size,
-	    stock_quantity
+	    stock_quantity,
+	    created_at,
+	    updated_at
 	FROM product_option
 	WHERE product_id = #{productId}
 	ORDER BY color, size;
   
 </select>
 
-<select id="selectProductImages" parameterType="long" resultMap="ProductImageResultMap">
+<select id="selectProductImages" parameterType="long" resultType="ProductImageRecord">
 
 	SELECT
 	    image_id,
 	    product_id,
 	    file_name,
 	    image_type,
-	    sort_order
+	    sort_order,
+	    use_yn,
+	    created_at
 	FROM product_image
 	WHERE product_id = #{productId}
 	  AND use_yn = 'Y'

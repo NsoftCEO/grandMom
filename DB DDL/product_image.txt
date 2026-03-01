@@ -5,7 +5,7 @@ CREATE TABLE product_image (
     image_type      VARCHAR(20) NOT NULL DEFAULT 'DETAIL'
                     COMMENT 'MAIN, DETAIL, OPTION, DESC',
 
-    sort_order      INT DEFAULT 0,
+    sort_order      INT NOT NULL DEFAULT 0,
     use_yn          CHAR(1) NOT NULL DEFAULT 'Y'
                     COMMENT '사용 여부 (Y/N)',
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
