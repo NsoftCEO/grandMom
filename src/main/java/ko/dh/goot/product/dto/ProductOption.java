@@ -13,7 +13,7 @@ public class ProductOption {
     private Long productId;
     private String color;
     private String size;
-    private Integer stockQuantity;
+    private int stockQuantity;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
