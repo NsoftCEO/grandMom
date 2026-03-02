@@ -8,9 +8,11 @@ import ko.dh.goot.order.dto.ProductOptionForOrder;
 @Mapper
 public interface ProductOptionMapper {
 
-    int decreaseStock(@Param("optionId") Long optionId,
-                      @Param("quantity") int quantity);
-
+    int decreaseStock(@Param("optionId") Long optionId, @Param("quantity") int quantity);
+    int increaseStock(@Param("optionId") Long optionId, @Param("quantity") int quantity);
+    
 	ProductOptionForOrder selectProductOptionDetail(Long optionId);
+
+	
 }
 

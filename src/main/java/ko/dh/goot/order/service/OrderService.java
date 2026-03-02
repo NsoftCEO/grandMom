@@ -20,6 +20,8 @@ import ko.dh.goot.order.dto.ProductOptionForOrder;
 import ko.dh.goot.order.persistence.OrderRecord;
 import ko.dh.goot.payment.dto.PaymentParamResponse;
 import ko.dh.goot.product.dao.ProductOptionMapper;
+import ko.dh.goot.product.dao.ProductOptionRepository;
+import ko.dh.goot.product.domain.ProductOption;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -36,6 +38,9 @@ public class OrderService {
 	private final OrderItemMapper orderItemMapper;
 	private final OrderRepository orderRepository ;
 	private final ProductOptionMapper productOptionMapper;	
+	private final ProductOptionRepository productOptionRepository;	
+	
+	
 	public OrderProductView selectOrderProduct(Long optionId, int quantity) throws NotFoundException {
 
 		OrderProductView orderProduct = orderMapper.selectOrderProduct(optionId);
@@ -60,16 +65,12 @@ public class OrderService {
 		if (orderRequest.getQuantity() == null || orderRequest.getQuantity() <= 0) {
 		    throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "주문 수량: " + orderRequest.getQuantity());
 		}
-		
-	    ProductOptionForOrder product = productOptionMapper.selectProductOptionDetail(orderRequest.getOptionId());
 
-	    if (product == null) {
-	    	throw new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND);
-	    }
-	    
-	    if (product.getStockQuantity() < orderRequest.getQuantity()) {
-	        throw new BusinessException(ErrorCode.OUT_OF_STOCK, "현재 재고: " + product.getStockQuantity());
-	    }
+	    ProductOption option = productOptionRepository.findById(orderRequest.getOptionId())
+	            .orElseThrow(() -> 
+	                    new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND));
+
+	    option.decreaseStock(orderRequest.getQuantity());
 
 	    Order order = Order.create(
 	            userId,
@@ -81,13 +82,13 @@ public class OrderService {
 	    );
 
 	    OrderItem item = OrderItem.create(
-	            product.getProductId(),
-	            product.getOptionId(),
-	            product.getProductName(),
-	            product.getUnitPrice(),
+	    		option.getProduct().getProductId(),
+	    		option.getOptionId(),
+	    		option.getProduct().getProductName(),
+	    		option.calculateOrderUnitPrice(),
 	            orderRequest.getQuantity(),
-	            product.getColor(),
-	            product.getSize()
+	            option.getColor(),
+	            option.getSize()
 	    );
 
 	    order.addItem(item);

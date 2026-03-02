@@ -75,8 +75,9 @@ public class Order {
     }
 
     public void addItem(OrderItem item) {
-        if (item == null) throw new IllegalArgumentException("item null");
-        if (orderItems.contains(item)) return; // idempotent
+        if (item == null) throw new IllegalArgumentException("OrderItem이 없습니다.");
+        if (orderItems.contains(item)) return;
+        
         item.setOrder(this);
         orderItems.add(item);
         recalculateTotal();
@@ -113,10 +114,37 @@ public class Order {
     }
 
     public void cancel() {
-    	if (this.orderStatus != OrderStatus.PAID) {
-    	    throw new IllegalStateException("취소 불가 상태");
+    	if (this.orderStatus != OrderStatus.PAYMENT_READY) {
+    	    throw new IllegalStateException("취소 불가 상태" + this.orderStatus);
     	}
         this.orderStatus = OrderStatus.CANCELLED;
         this.updatedAt = LocalDateTime.now();
     }
+    
+    /* =========================
+    상태 쿼리 / 전이 헬퍼
+    ========================= */
+
+	 public boolean isPaid() {
+	     return this.orderStatus == OrderStatus.PAID;
+	 }
+	
+	 public boolean isCancelled() {
+	     return this.orderStatus == OrderStatus.CANCELLED;
+	 }
+	 
+	 public boolean isPaymentFailed() {
+	        return this.orderStatus == OrderStatus.PAYMENT_FAILED;
+	 }
+	 
+	 public void markPaymentFailed() {
+        if (this.orderStatus == OrderStatus.PAID || this.orderStatus == OrderStatus.CANCELLED) {
+            throw new IllegalStateException("이미 완료/취소된 주문입니다: " + this.orderStatus);
+        }
+        this.orderStatus = OrderStatus.PAYMENT_FAILED;
+        this.updatedAt = LocalDateTime.now();
+    }
+	 
+	 
+	 
 }

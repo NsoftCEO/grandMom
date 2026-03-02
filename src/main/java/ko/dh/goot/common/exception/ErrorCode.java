@@ -35,7 +35,8 @@ public enum ErrorCode {
     // product
     PRODUCT_OPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "상품 옵션이 존재하지 않습니다."),
     OUT_OF_STOCK(HttpStatus.BAD_REQUEST, "P002", "상품 재고가 부족합니다."),
-
+    PRODUCT_STOCK_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "P003", "상품 재고 수량 변경에 실패했습니다."),
+    
     // payment
     PAYMENT_INVALID_REQUEST(HttpStatus.BAD_REQUEST, "PAY001", "결제 요청이 유효하지 않습니다."),
 	PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAY002", "결제가 존재하지 않습니다."),	
