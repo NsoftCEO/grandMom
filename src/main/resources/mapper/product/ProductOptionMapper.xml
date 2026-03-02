@@ -13,32 +13,39 @@
 
 </resultMap>
 
-<select id="selectProductOptionDetail"
-        parameterType="long"
-        resultMap="productOptionForOrderMap">
+	<select id="selectProductOptionDetail"
+	        parameterType="long"
+	        resultMap="productOptionForOrderMap">
+	
+	    SELECT
+	        po.option_id,
+	        po.product_id,
+	        po.color,
+	        po.size,
+	        po.stock_quantity,
+	
+	        p.product_name,
+	        COALESCE(p.sale_price, p.price) AS unit_price
+	
+	    FROM product_option po
+	    JOIN product p ON p.product_id = po.product_id
+	    WHERE po.option_id = #{optionId}
+	
+	</select>
 
-    SELECT
-        po.option_id,
-        po.product_id,
-        po.color,
-        po.size,
-        po.stock_quantity,
-
-        p.product_name,
-        COALESCE(p.sale_price, p.price) AS unit_price
-
-    FROM product_option po
-    JOIN product p ON p.product_id = po.product_id
-    WHERE po.option_id = #{optionId}
-
-</select>
-
-
+	<update id="increaseStock">
+        UPDATE product_option
+        SET stock_quantity = stock_quantity + #{quantity}
+        WHERE option_id = #{optionId}
+    </update>
+    
 	<update id="decreaseStock">
         UPDATE product_option
         SET stock_quantity = stock_quantity - #{quantity}
         WHERE option_id = #{optionId}
           AND stock_quantity >= #{quantity}
     </update>
+    
+    
     
 </mapper>

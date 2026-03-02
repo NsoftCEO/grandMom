@@ -1,8 +1,8 @@
 CREATE TABLE product (
     product_id     BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     product_name   VARCHAR(255) NOT NULL COMMENT '상품명',
-    price       INT NOT NULL COMMENT '정가',
-    sale_price  INT NULL COMMENT '할인 판매가',
+    price          INT NOT NULL COMMENT '정가',
+    sale_price     INT NULL COMMENT '할인 판매가',
     description    TEXT COMMENT '상품 상세 설명',
 
     category_id    BIGINT UNSIGNED COMMENT '카테고리 ID',
@@ -10,6 +10,9 @@ CREATE TABLE product (
     product_status ENUM('ACTIVE','HIDDEN','STOP')
            NOT NULL DEFAULT 'ACTIVE'
            COMMENT '상품 판매 상태',
+
+    version        BIGINT NOT NULL DEFAULT 0
+           COMMENT '낙관적 락 버전',
 
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP

@@ -9,6 +9,9 @@ CREATE TABLE product_option (
     stock_quantity   INT NOT NULL
                      COMMENT '재고 수량',
 
+    version          BIGINT NOT NULL DEFAULT 0
+                     COMMENT '낙관적 락 버전',
+
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                      ON UPDATE CURRENT_TIMESTAMP,
