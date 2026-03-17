@@ -75,7 +75,7 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.PG_PAYMENT_NOT_FOUND, "portonePaymentId=" + portonePaymentId);
         }
 
-        // 3. 내부 트랜잭션 진입 (외부 객체의 메서드를 호출하므로 @Transactional 완벽 동작!)
+        // 3. 내부 트랜잭션 진입 
         paymentTxService.processSuccessfulPaymentTx(pgPayment);
     }
 

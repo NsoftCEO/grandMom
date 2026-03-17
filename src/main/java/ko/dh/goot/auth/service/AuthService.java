@@ -1,7 +1,7 @@
-// ko/dh/goot/auth/service/AuthService.java
 package ko.dh.goot.auth.service;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Optional;
 
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,6 +20,7 @@ import ko.dh.goot.auth.dto.SignupRequest;
 import ko.dh.goot.auth.dto.TokenResponse;
 import ko.dh.goot.auth.oauth.OAuthUserInfo;
 import ko.dh.goot.security.jwt.JwtProvider;
+import ko.dh.goot.security.jwt.TokenHasher;
 import ko.dh.goot.user.dao.UserRepository;
 import ko.dh.goot.user.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class AuthService {
     private final OAuthService oAuthService;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TokenHasher tokenHasher;
 
     /**
      * ✅ 회원가입 (LOCAL)
@@ -166,12 +168,15 @@ public class AuthService {
     @Transactional
     public TokenResponse refreshToken(String refreshToken) {
 
-        RefreshToken rt = refreshTokenRepository.findByToken(refreshToken)
+        // 🔥 raw → hash 변환
+        String hashedToken = tokenHasher.hash(refreshToken);
+
+        RefreshToken rt = refreshTokenRepository.findByToken(hashedToken)
                 .orElseThrow(() -> new BadCredentialsException("invalid refresh token"));
 
         // ✅ 만료 or 폐기 체크
         if (rt.getExpiredAt().isBefore(Instant.now()) || rt.isRevoked()) {
-            refreshTokenRepository.delete(rt);
+            refreshTokenRepository.deleteByUserId(rt.getUserId()); // 🔥 통일
             throw new BadCredentialsException("refresh token expired or revoked");
         }
 
@@ -187,9 +192,9 @@ public class AuthService {
         String newAccess = jwtProvider.createAccessToken(user.getUserId(), user.getRole());
         String newRefresh = jwtProvider.createRefreshToken();
 
-        // ✅ 기존 토큰 제거 후 재발급
-        refreshTokenRepository.delete(rt);
-        saveRefreshToken(user.getUserId(), newRefresh);
+        refreshTokenRepository.deleteByUserId(userId);
+
+        saveRefreshToken(userId, newRefresh);
 
         return TokenResponse.of(
                 newAccess,
@@ -204,8 +209,10 @@ public class AuthService {
     @Transactional
     public void logout(String refreshToken) {
 
-        refreshTokenRepository.findByToken(refreshToken).ifPresent(rt -> {
-            rt.revoke(); // ✅ setter 대신 도메인 메서드
+        String hashedToken = tokenHasher.hash(refreshToken);
+
+        refreshTokenRepository.findByToken(hashedToken).ifPresent(rt -> {
+            rt.revoke();
         });
     }
 
@@ -214,12 +221,15 @@ public class AuthService {
      */
     private void saveRefreshToken(String userId, String refreshToken) {
 
-        // 기존 토큰 제거
+        // 🔥 기존 토큰 제거 (벌크)
         refreshTokenRepository.deleteByUserId(userId);
+
+        // 🔥 hash 적용
+        String hashedToken = tokenHasher.hash(refreshToken);
 
         RefreshToken rt = RefreshToken.builder()
                 .userId(userId)
-                .token(refreshToken)
+                .token(hashedToken)
                 .expiredAt(Instant.now().plusMillis(jwtProvider.getRefreshExpireMs()))
                 .revoked(false)
                 .build();
@@ -241,7 +251,7 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("user not found: " + userId));
 
-        return new java.util.HashMap<String, Object>() {{
+        return new HashMap<String, Object>() {{
             put("id", user.getUserId());
             put("email", user.getEmail());
             put("name", user.getName());
