@@ -3,7 +3,7 @@ package ko.dh.goot.user.dao;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import ko.dh.goot.user.dto.User;
+import ko.dh.goot.user.domain.User;
 
 @Mapper
 public interface UserMapper {

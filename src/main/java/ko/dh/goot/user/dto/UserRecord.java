@@ -13,7 +13,7 @@ import lombok.ToString;
 @AllArgsConstructor
 @Builder
 @ToString(exclude = "password") // 로그에 비밀번호 노출 방지
-public class User {
+public class UserRecord {
 
     private String userId;          // PK (UUID 권장)
     private String name;            // 사용자 이름
