@@ -1,6 +1,7 @@
 package ko.dh.goot.security.principal;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.springframework.security.core.GrantedAuthority;
@@ -23,7 +24,8 @@ public class SecurityUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(user.getRole()));
+        // 엔티티의 Role 정보를 시큐리티 권한으로 변환
+        return Collections.singletonList(new SimpleGrantedAuthority(user.getRole()));
     }
 
     @Override
@@ -43,7 +45,8 @@ public class SecurityUserDetails implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-    	return !"WITHDRAWN".equals(user.getStatus());
+        // status가 ACTIVE인 경우에만 잠기지 않은 것으로 간주
+        return "ACTIVE".equals(user.getStatus());
     }
 
     @Override
@@ -53,6 +56,7 @@ public class SecurityUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return "ACTIVE".equals(user.getStatus());
+        // 탈퇴(WITHDRAWN) 상태가 아니면 활성화된 계정으로 간주
+        return !"WITHDRAWN".equals(user.getStatus());
     }
 }

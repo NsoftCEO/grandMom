@@ -16,6 +16,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+
 @Component
 public class JwtProvider {
 
@@ -44,6 +45,13 @@ public class JwtProvider {
         // Keys.hmacShaKeyFor 자체가 짧은 키에 대해 예외를 던지지만, 사용자에게 명확한 메시지를 주기 위함.
         if (keyBytes.length < 32) { // 256bit(32bytes) 권장
             throw new IllegalStateException("The configured jwt.secret is too short. Use a longer secret (recommended >= 32 bytes).");
+        }
+        
+        if (accessExpireMs <= 0) {
+            throw new IllegalStateException("jwt.access-exp-ms must be > 0 (ms). Current: " + accessExpireMs);
+        }
+        if (refreshExpireMs <= 0) {
+            throw new IllegalStateException("jwt.refresh-exp-ms must be > 0 (ms). Current: " + refreshExpireMs);
         }
 
         this.key = Keys.hmacShaKeyFor(keyBytes);
