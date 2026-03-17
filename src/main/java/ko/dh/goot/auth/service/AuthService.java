@@ -45,15 +45,16 @@ public class AuthService {
             throw new IllegalArgumentException("email already exists");
         });
 
-        User user = User.builder()
-                .email(request.getEmail())
+        User user = User.builder()                
                 .name(request.getName() == null ? "no-name" : request.getName())
+                .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .loginType("LOCAL")
-                .provider(null)
-                .providerId(null)
+                .phone(request.getPhone())
                 .role("ROLE_USER")
                 .status("ACTIVE")
+                .loginType("LOCAL")
+                .provider(null)
+                .providerId(null)               
                 .build();
 
         userRepository.save(user);
