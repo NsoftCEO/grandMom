@@ -35,9 +35,7 @@ public class OrderService {
     private String channelKey;
 	
 	private final OrderMapper orderMapper;
-	private final OrderItemMapper orderItemMapper;
 	private final OrderRepository orderRepository ;
-	private final ProductOptionMapper productOptionMapper;	
 	private final ProductOptionRepository productOptionRepository;	
 	
 	

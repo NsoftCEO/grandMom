@@ -8,8 +8,18 @@ import lombok.Getter;
 @Builder
 @AllArgsConstructor
 public class TokenResponse {
-    private String grantType;     // 보통 "Bearer"
+
+    private String grantType; // "Bearer"
     private String accessToken;
     private String refreshToken;
-    private Long accessTokenExpiresIn; // 만료 시간(ms)
+    private Long accessTokenExpiresIn;
+
+    public static TokenResponse of(String accessToken, String refreshToken, long expiresIn) {
+        return TokenResponse.builder()
+                .grantType("Bearer")
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .accessTokenExpiresIn(expiresIn)
+                .build();
+    }
 }

@@ -10,12 +10,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(
-    name = "users",
-    uniqueConstraints = {
-        @UniqueConstraint(name = "uk_provider", columnNames = {"provider", "provider_id"})
-    }
-)
+@Table(name = "users")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User {
@@ -81,15 +76,13 @@ public class User {
     }
 
     @Builder
-    public User(String name, String email, String password, String phone, 
-                String role, String status, String loginType, 
+    public User(String name, String email, String password, String phone,
+                String role, String status, String loginType,
                 String provider, String providerId) {
-        
-        // 필수 값 검증 (간단한 예시)
+
         if (name == null || name.isBlank()) throw new IllegalArgumentException("이름은 필수입니다.");
         if (email == null || email.isBlank()) throw new IllegalArgumentException("이메일은 필수입니다.");
 
-        this.userId = UUID.randomUUID().toString(); // 생성 시점에 UUID 발급
         this.name = name;
         this.email = email;
         this.password = password;

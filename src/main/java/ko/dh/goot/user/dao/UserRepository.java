@@ -8,6 +8,8 @@ import ko.dh.goot.user.domain.User;
 
 public interface UserRepository extends JpaRepository<User, String> {
 
+	Optional<User> findById(String userId);
+	
     Optional<User> findByEmail(String email);
 
     Optional<User> findByProviderAndProviderId(String provider, String providerId);

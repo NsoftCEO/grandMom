@@ -20,10 +20,11 @@ import lombok.extern.log4j.Log4j2;
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
-	
-	private final AuthService authService;
+
+    private final AuthService authService;
+
     /**
-     * 회원가입 API
+     * 회원가입
      */
     @PostMapping("/signup")
     public ResponseEntity<Void> signup(@Valid @RequestBody SignupRequest request) {
@@ -33,37 +34,32 @@ public class AuthController {
     }
 
     /**
-     * 로그인 API (JWT Access/Refresh 토큰 발급)
+     * 로그인 (아이디/비밀번호) -> Access/Refresh 발급
      */
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
         log.info("로그인 요청: email={}", request.getEmail());
-        
-        // 아이디/비밀번호 검증 후 JWT 토큰 DTO 반환
         TokenResponse tokenResponse = authService.login(request);
-        
         return ResponseEntity.ok(tokenResponse);
     }
 
     /**
-     * 토큰 재발급 API (Refresh Token을 이용해 새로운 Access Token 발급)
+     * Refresh 토큰으로 Access 토큰 재발급
      */
     @PostMapping("/refresh")
     public ResponseEntity<TokenResponse> refreshToken(@Valid @RequestBody TokenRefreshRequest request) {
         log.info("토큰 재발급 요청");
-        
         TokenResponse tokenResponse = authService.refreshToken(request.getRefreshToken());
-        
         return ResponseEntity.ok(tokenResponse);
     }
-    
+
     /**
-     * 로그아웃 API (Refresh Token 삭제 및 Access Token 블랙리스트 처리 등)
+     * 로그아웃: Refresh 토큰 폐기 (revoked=true) 처리
      */
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@RequestBody TokenRefreshRequest request) {
+        log.info("로그아웃 요청");
         authService.logout(request.getRefreshToken());
         return ResponseEntity.ok().build();
     }
 }
-
