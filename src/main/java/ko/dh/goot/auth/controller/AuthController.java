@@ -45,7 +45,7 @@ public class AuthController {
      * ✅ 일반 로그인
      */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         TokenResponse tokenResponse = authService.login(request);
         return createAuthResponse(tokenResponse);
     }
@@ -55,8 +55,7 @@ public class AuthController {
      */
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(
-            @CookieValue(value = "refreshToken", required = false) String refreshToken
-    ) {
+            @CookieValue(value = "refreshToken", required = false) String refreshToken) {
         if (refreshToken == null) {
             return ResponseEntity.status(401).body("Refresh token is missing");
         }
@@ -69,9 +68,7 @@ public class AuthController {
      * ✅ 로그아웃
      */
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(
-            @CookieValue(value = "refreshToken", required = false) String refreshToken
-    ) {
+    public ResponseEntity<?> logout(@CookieValue(value = "refreshToken", required = false) String refreshToken) {
         if (refreshToken != null) {
             authService.logout(refreshToken);
         }

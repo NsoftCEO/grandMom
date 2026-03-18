@@ -22,6 +22,7 @@ import ko.dh.goot.payment.dto.PaymentParamResponse;
 import ko.dh.goot.product.dao.ProductOptionMapper;
 import ko.dh.goot.product.dao.ProductOptionRepository;
 import ko.dh.goot.product.domain.ProductOption;
+import ko.dh.goot.product.service.ProductOptionService;
 import ko.dh.goot.user.dao.UserRepository;
 import ko.dh.goot.user.domain.User;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class OrderService {
     @Value("${portone.channel-key}")
     private String channelKey;
 	
+    private final ProductOptionService productOptionService;
 	private final OrderMapper orderMapper;
 	private final OrderRepository orderRepository ;
 	private final UserRepository userRepository ;
@@ -62,19 +64,15 @@ public class OrderService {
 	
 	@Transactional
 	public OrderResponse prepareOrder(OrderRequest orderRequest, String userId) {
-		
-		if (orderRequest.getQuantity() == null || orderRequest.getQuantity() <= 0) {
-		    throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "주문 수량: " + orderRequest.getQuantity());
-		}
 
+		productOptionService.decreaseStock(orderRequest.getOptionId(), orderRequest.getQuantity());
+		 
 		User user = userRepository.findById(userId)
 	            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 		
 	    ProductOption option = productOptionRepository.findById(orderRequest.getOptionId())
 	            .orElseThrow(() -> 
 	                    new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND));
-
-	    option.decreaseStock(orderRequest.getQuantity());
 
 	    Order order = Order.create(
 	    		user.getUserId(),

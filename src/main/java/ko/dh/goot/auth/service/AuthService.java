@@ -21,6 +21,7 @@ import ko.dh.goot.auth.dto.LoginRequest;
 import ko.dh.goot.auth.dto.SignupRequest;
 import ko.dh.goot.auth.dto.TokenResponse;
 import ko.dh.goot.auth.oauth.OAuthUserInfo;
+import ko.dh.goot.common.exception.RefreshTokenException;
 import ko.dh.goot.security.jwt.JwtProvider;
 import ko.dh.goot.security.jwt.TokenHasher;
 import ko.dh.goot.user.dao.UserRepository;
@@ -91,16 +92,7 @@ public class AuthService {
         // ✅ 마지막 로그인 갱신
         user.updateLastLogin();
 
-        String accessToken = jwtProvider.createAccessToken(user.getUserId(), user.getRole());
-        String refreshToken = jwtProvider.createRefreshToken();
-
-        saveRefreshToken(user.getUserId(), refreshToken);
-
-        return TokenResponse.of(
-                accessToken,
-                refreshToken,
-                jwtProvider.getAccessExpireMs()
-        );
+        return issueTokens(user);
     }
 
     /**
@@ -108,40 +100,16 @@ public class AuthService {
      */
     @Transactional
     public TokenResponse socialLogin(String provider, String accessTokenFromClient) {
-
         OAuthUserInfo userInfo = oAuthService.getUserInfo(provider, accessTokenFromClient);
 
-        Optional<User> optUser = Optional.empty();
+        User user = userRepository.findByEmail(userInfo.getEmail())
+                .or(() -> userRepository.findByProviderAndProviderId(userInfo.getProvider(), userInfo.getProviderId()))
+                .orElseGet(() -> register(userInfo));
 
-        if (userInfo.getEmail() != null) {
-            optUser = userRepository.findByEmail(userInfo.getEmail());
-        }
-
-        if (optUser.isEmpty()) {
-            optUser = userRepository.findByProviderAndProviderId(
-                    userInfo.getProvider(),
-                    userInfo.getProviderId()
-            );
-        }
-
-        User user = optUser.orElseGet(() -> register(userInfo));
-
-        if (!"ACTIVE".equals(user.getStatus())) {
-            throw new BadCredentialsException("inactive user");
-        }
+        if (!"ACTIVE".equals(user.getStatus())) throw new BadCredentialsException("inactive user");
 
         user.updateLastLogin();
-
-        String access = jwtProvider.createAccessToken(user.getUserId(), user.getRole());
-        String refresh = jwtProvider.createRefreshToken();
-
-        saveRefreshToken(user.getUserId(), refresh);
-
-        return TokenResponse.of(
-                access,
-                refresh,
-                jwtProvider.getAccessExpireMs()
-        );
+        return issueTokens(user); // 🔥 로직 공통화
     }
 
     /**
@@ -149,11 +117,8 @@ public class AuthService {
      */
     @Transactional
     protected User register(OAuthUserInfo userInfo) {
-
         User user = User.builder()
-                .email(userInfo.getEmail() != null
-                        ? userInfo.getEmail()
-                        : userInfo.getProvider() + "_" + userInfo.getProviderId())
+                .email(userInfo.getEmail() != null ? userInfo.getEmail() : userInfo.getProvider() + "_" + userInfo.getProviderId())
                 .name(userInfo.getName() == null ? "no-name" : userInfo.getName())
                 .loginType("SOCIAL")
                 .provider(userInfo.getProvider())
@@ -161,48 +126,31 @@ public class AuthService {
                 .role(UserRole.ROLE_USER)
                 .status("ACTIVE")
                 .build();
-
         return userRepository.save(user);
     }
 
     /**
-     * ✅ 토큰 재발급
+     * ✅ 토큰 재발급 (보안 강화)
      */
-    @Transactional
+    @Transactional(noRollbackFor = {RefreshTokenException.class}) // 🔥 특정 예외 시 롤백 방지
     public TokenResponse refreshToken(String refreshToken) {
-
-        // 🔥 raw → hash 변환
         String hashedToken = tokenHasher.hash(refreshToken);
 
-        // 🔥 MyBatis를 이용한 직접 조회
         RefreshToken rt = refreshTokenMapper.findByToken(hashedToken)
-                .orElseThrow(() -> new BadCredentialsException("invalid refresh token"));
+                .orElseThrow(() -> new RefreshTokenException("invalid refresh token"));
 
-        // ✅ 만료 or 폐기 체크
+        // 만료/폐기 체크 시 즉시 해당 유저의 모든 토큰 삭제 (RTR 및 보안 정책)
         if (rt.getExpiredAt().isBefore(Instant.now()) || rt.isRevoked()) {
-            refreshTokenMapper.deleteByUserId(rt.getUserId()); // 🔥 MyBatis로 즉각 삭제
-            throw new BadCredentialsException("refresh token expired or revoked");
+            refreshTokenMapper.deleteByUserId(rt.getUserId()); 
+            throw new RefreshTokenException("refresh token expired or revoked");
         }
 
-        String userId = rt.getUserId();
+        User user = userRepository.findById(rt.getUserId())
+                .orElseThrow(() -> new UsernameNotFoundException("user not found"));
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UsernameNotFoundException("user not found: " + userId));
+        if (!"ACTIVE".equals(user.getStatus())) throw new BadCredentialsException("inactive user");
 
-        if (!"ACTIVE".equals(user.getStatus())) {
-            throw new BadCredentialsException("inactive user");
-        }
-
-        String newAccess = jwtProvider.createAccessToken(user.getUserId(), user.getRole());
-        String newRefresh = jwtProvider.createRefreshToken();
-
-        saveRefreshToken(userId, newRefresh);
-
-        return TokenResponse.of(
-                newAccess,
-                newRefresh,
-                jwtProvider.getAccessExpireMs()
-        );
+        return issueTokens(user);
     }
 
     /**
@@ -211,32 +159,22 @@ public class AuthService {
     @Transactional
     public void logout(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) return;
-        
-        String hashedToken = tokenHasher.hash(refreshToken);
-        
-        // 🔥 MyBatis를 통해 UPDATE 쿼리 즉시 실행
-        refreshTokenMapper.revokeToken(hashedToken);
+        refreshTokenMapper.revokeToken(tokenHasher.hash(refreshToken));
     }
 
     /**
      * ✅ RefreshToken 저장 (단일 토큰 정책)
      */
     private void saveRefreshToken(String userId, String refreshToken) {
-
-        // 🔥 MyBatis: 기존 토큰 즉시 제거 (DELETE 쿼리 강제 실행)
-        refreshTokenMapper.deleteByUserId(userId);
-
-        // 🔥 hash 적용
-        String hashedToken = tokenHasher.hash(refreshToken);
+        refreshTokenMapper.deleteByUserId(userId); // 기존 토큰 삭제
 
         RefreshToken rt = RefreshToken.builder()
                 .userId(userId)
-                .token(hashedToken)
+                .token(tokenHasher.hash(refreshToken))
                 .expiredAt(Instant.now().plusMillis(jwtProvider.getRefreshExpireMs()))
                 .revoked(false)
                 .build();
 
-        // 🔥 MyBatis: 새로운 토큰 즉시 저장 (INSERT 쿼리 강제 실행)
         refreshTokenMapper.insertToken(rt);
     }
 
@@ -261,5 +199,17 @@ public class AuthService {
             put("provider", user.getProvider());
             put("role", user.getRole());
         }};
+    }
+    
+    /**
+     * [공통 로직] 신규 AT, RT 발급 및 저장
+     */
+    private TokenResponse issueTokens(User user) {
+        String accessToken = jwtProvider.createAccessToken(user.getUserId(), user.getRole());
+        String refreshToken = jwtProvider.createRefreshToken();
+
+        saveRefreshToken(user.getUserId(), refreshToken);
+
+        return TokenResponse.of(accessToken, refreshToken, jwtProvider.getAccessExpireMs());
     }
 }
