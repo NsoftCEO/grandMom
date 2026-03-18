@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>회원가입</title>
+</head>
+<body>
+
+<h2>회원가입</h2>
+
+<div>
+    <label>이름</label>
+    <input type="text" id="name" />
+</div>
+
+<div>
+    <label>이메일</label>
+    <input type="email" id="email" />
+</div>
+
+<div>
+    <label>비밀번호</label>
+    <input type="password" id="password" />
+</div>
+
+<div>
+    <label>전화번호</label>
+    <input type="text" id="phone" />
+</div>
+
+<div>
+    <button onclick="signup()">회원가입</button>
+</div>
+
+<p id="error" style="color:red;"></p>
+
+<a th:href="@{/user/login}">로그인</a>
+
+<!-- JS 분리 -->
+<script th:src="@{/js/user/signup.js}"></script>
+
+</body>
+</html>
