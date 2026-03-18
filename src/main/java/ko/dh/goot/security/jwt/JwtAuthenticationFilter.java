@@ -1,6 +1,7 @@
 package ko.dh.goot.security.jwt;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
@@ -9,8 +10,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,37 +28,49 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 			throws ServletException, IOException {
 
 		try {
-			String token = resolveToken(request);
+			// JwtProvider의 resolveToken 사용
+			String token = jwtProvider.resolveToken(request.getHeader("Authorization"));
 
-			if (token != null && jwtProvider.validateToken(token)) {
+			if (token != null && !token.isBlank()) {
+				JwtProvider.TokenStatus status = jwtProvider.validateTokenStatus(token);
 
-				String userId = jwtProvider.getUserId(token);
-				String role = jwtProvider.getRole(token);
+				if (status == JwtProvider.TokenStatus.VALID) {
+					// 토큰이 유효한 경우에만 Claims에서 값 추출
+					String userId = jwtProvider.getUserId(token);
+					List<String> roles = jwtProvider.getRoles(token);
 
-				UserPrincipal principal = new UserPrincipal(userId, role);
+					// 기존 UserPrincipal 생성자와의 호환성 유지: primary role 사용
+					String primaryRole = roles.isEmpty() ? "ROLE_USER" : roles.get(0);
+					UserPrincipal principal = new UserPrincipal(userId, primaryRole);
 
-				UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(principal,
-						null, List.of(new SimpleGrantedAuthority(role)));
+					// authorities 생성 (roles 전체 반영)
+					List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+					for (String r : roles) {
+						authorities.add(new SimpleGrantedAuthority(r));
+					}
 
-				SecurityContextHolder.getContext().setAuthentication(authentication);
+					UsernamePasswordAuthenticationToken authentication =
+							new UsernamePasswordAuthenticationToken(principal, null, authorities);
+
+					SecurityContextHolder.getContext().setAuthentication(authentication);
+				} else if (status == JwtProvider.TokenStatus.EXPIRED) {
+					request.setAttribute("authError", ErrorCode.TOKEN_EXPIRED);
+					throw new AuthenticationCredentialsNotFoundException("Token expired");
+				} else { // INVALID
+					request.setAttribute("authError", ErrorCode.INVALID_TOKEN);
+					throw new AuthenticationCredentialsNotFoundException("Invalid token");
+				}
 			}
 
 			filterChain.doFilter(request, response);
-		} catch (ExpiredJwtException e) {
-			request.setAttribute("authError", ErrorCode.TOKEN_EXPIRED);
-			throw new AuthenticationCredentialsNotFoundException("Token expired", e);
 
-		} catch (JwtException | IllegalArgumentException e) {
+		} catch (AuthenticationCredentialsNotFoundException e) {
+			// 이미 authError 속성 설정된 상태에서 예외를 던짐
+			throw e;
+		} catch (Exception e) {
+			// 파싱 도중의 예기치 않은 오류 처리: 토큰 무효로 간주
 			request.setAttribute("authError", ErrorCode.INVALID_TOKEN);
 			throw new AuthenticationCredentialsNotFoundException("Invalid token", e);
 		}
-	}
-
-	private String resolveToken(HttpServletRequest request) {
-		String bearer = request.getHeader("Authorization");
-		if (bearer != null && bearer.startsWith("Bearer ")) {
-			return bearer.substring(7);
-		}
-		return null;
 	}
 }

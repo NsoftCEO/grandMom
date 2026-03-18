@@ -1,52 +1,64 @@
 package ko.dh.goot.security.jwt;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import jakarta.annotation.PostConstruct;
+
 
 @Component
 public class JwtProvider {
 
-    // 기본값: 30분
-    @Value("${jwt.access-exp-ms}")
-    private long accessExpireMs;
+    // Claim key constants
+    private static final String CLAIM_ROLES = "roles";
 
-    // 기본값: 7일
-    @Value("${jwt.refresh-exp-ms}")
-    private long refreshExpireMs;
+    // 기본값: properties를 통해 주입
+    private final long accessExpireMs;
+    private final long refreshExpireMs;
+    private final SecretKey key;
+    private final JwtParser parser;
+    private final Clock clock;
+    private final String issuer;
 
-    @Value("${jwt.secret}")
-    private String secret;
+    /**
+     * 토큰 상태 반환용 enum
+     */
+    public enum TokenStatus {
+        VALID,
+        EXPIRED,
+        INVALID
+    }
 
-    private SecretKey key;
 
-    @PostConstruct
-    void init() {
+    public JwtProvider(
+            @Value("${jwt.access-exp-ms}") long accessExpireMs,
+            @Value("${jwt.refresh-exp-ms}") long refreshExpireMs,
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.issuer:goot-api}") String issuer,
+            Clock clock
+    ) {
         if (secret == null || secret.trim().isEmpty()) {
             throw new IllegalStateException("jwt.secret is not configured. Please set jwt.secret in properties.");
         }
-
-        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-
-        // 최소 길이 체크 (HS256의 안전한 키 길이를 보장하기 위해 권장 길이 체크)
-        // Keys.hmacShaKeyFor 자체가 짧은 키에 대해 예외를 던지지만, 사용자에게 명확한 메시지를 주기 위함.
-        if (keyBytes.length < 32) { // 256bit(32bytes) 권장
-            throw new IllegalStateException("The configured jwt.secret is too short. Use a longer secret (recommended >= 32 bytes).");
-        }
-        
         if (accessExpireMs <= 0) {
             throw new IllegalStateException("jwt.access-exp-ms must be > 0 (ms). Current: " + accessExpireMs);
         }
@@ -54,92 +66,129 @@ public class JwtProvider {
             throw new IllegalStateException("jwt.refresh-exp-ms must be > 0 (ms). Current: " + refreshExpireMs);
         }
 
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 32) { // 권장: 256bit / 32 bytes 이상
+            throw new IllegalStateException("The configured jwt.secret is too short. Use a longer secret (recommended >= 32 bytes).");
+        }
+
+        this.accessExpireMs = accessExpireMs;
+        this.refreshExpireMs = refreshExpireMs;
+        this.issuer = (issuer == null || issuer.isBlank()) ? "goot-api" : issuer;
+        this.clock = (clock == null) ? Clock.systemUTC() : clock;
         this.key = Keys.hmacShaKeyFor(keyBytes);
+
+        // JwtParser는 재사용하도록 생성자에서 한 번만 초기화
+        this.parser = Jwts.parserBuilder()
+                .setSigningKey(this.key)
+                .build();
     }
 
     /**
-     * Access Token 생성
-     * 기본 claim: subject(userId), role
-     *
-     * @param userId subject (여기서는 String userId)
-     * @param role role claim
-     * @return JWT access token
+     * Access Token 생성 (단일 role 버전)
      */
     public String createAccessToken(String userId, String role) {
-        Date now = new Date();
-        Date exp = new Date(now.getTime() + accessExpireMs);
+        return createAccessToken(userId, role, null);
+    }
 
-        return Jwts.builder()
+    /**
+     * Access Token 생성 (추가 claims 제공 가능)
+     * - standard claims: sub(subject)=userId, iss, jti, iat, exp
+     * - roles: List<String> 형태로 저장
+     */
+    public String createAccessToken(String userId, String role, Map<String, Object> extraClaims) {
+        Instant nowInstant = clock.instant();
+        Date now = Date.from(nowInstant);
+        Date exp = Date.from(nowInstant.plusMillis(accessExpireMs));
+
+        // 안전하게 extraClaims 복사 (null-safe)
+        Map<String, Object> baseClaims = (extraClaims == null) ? new HashMap<>() : new HashMap<>(extraClaims);
+        // 다른 코드에서 덮어쓰지 않도록 표준 claim은 아래에서 별도 설정 (setSubject etc.)
+        JwtBuilder b = Jwts.builder();
+
+        if (!baseClaims.isEmpty()) {
+            b.setClaims(baseClaims);
+        }
+
+        // roles: 리스트 형태로 저장 (확장성)
+        List<String> rolesList = (role == null) ? Collections.emptyList() : List.of(role);
+
+        return b
                 .setSubject(userId)
+                .setIssuer(issuer)
+                .setId(UUID.randomUUID().toString()) // jti
                 .setIssuedAt(now)
                 .setExpiration(exp)
-                .claim("role", role)
+                .claim(CLAIM_ROLES, rolesList)
                 .signWith(key)
                 .compact();
     }
 
     /**
-     * Access Token 생성(추가 claims 제공용)
-     *
-     * @param userId subject
-     * @param role role
-     * @param extraClaims 추가 클레임(예: name, email 등)
-     * @return JWT access token
-     */
-    public String createAccessToken(String userId, String role, Map<String, Object> extraClaims) {
-        Date now = new Date();
-        Date exp = new Date(now.getTime() + accessExpireMs);
-
-        io.jsonwebtoken.JwtBuilder b = Jwts.builder()
-                .setSubject(userId)
-                .setIssuedAt(now)
-                .setExpiration(exp)
-                .claim("role", role);
-
-        if (extraClaims != null && !extraClaims.isEmpty()) {
-            b.addClaims(extraClaims);
-        }
-
-        return b.signWith(key).compact();
-    }
-
-    /**
-     * Refresh Token은 UUID (JWT 아님).
-     * 만료/저장은 외부(DB/Redis)에서 TTL로 관리.
+     * Refresh Token (JWT 아님) - UUID 사용
+     * 실제 만료/저장은 DB/Redis에서 TTL로 관리
      */
     public String createRefreshToken() {
         return UUID.randomUUID().toString();
     }
 
     /**
-     * 토큰이 유효한지(파싱 가능한지) 확인.
-     * 만료된 토큰도 false를 반환 (만료을 구분하려면 validateAndGetClaims 사용)
+     * Bearer 토큰에서 "Bearer " 접두어 제거 유틸
      */
-    public boolean validateToken(String token) {
-        if (token == null || token.isBlank()) return false;
+    public String resolveToken(String bearerToken) {
+        if (bearerToken == null || bearerToken.isBlank()) return bearerToken;
+        if (bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7).trim();
+        }
+        return bearerToken;
+    }
+
+    /**
+     * 토큰 상태 반환: VALID / EXPIRED / INVALID
+     */
+    public TokenStatus validateTokenStatus(String token) {
+        if (token == null || token.isBlank()) return TokenStatus.INVALID;
         try {
-            parseClaims(token);
-            return true;
-        } catch (JwtException | IllegalArgumentException ex) {
-            return false;
+            parser.parseClaimsJws(token);
+            return TokenStatus.VALID;
+        } catch (ExpiredJwtException e) {
+            return TokenStatus.EXPIRED;
+        } catch (JwtException | IllegalArgumentException e) {
+            return TokenStatus.INVALID;
         }
     }
 
     /**
-     * 토큰이 만료되었는지 여부 반환.
-     * 만료된 경우 true 반환, 그 외(파싱 불가 등)도 false 또는 예외로 처리 가능.
+     * boolean 검증 (단순 유효성 체크: VALID -> true, 나머지 false)
+     */
+    public boolean validateToken(String token) {
+        return validateTokenStatus(token) == TokenStatus.VALID;
+    }
+
+    /**
+     * 만료 여부 체크
      */
     public boolean isTokenExpired(String token) {
+        if (token == null || token.isBlank()) return true;
         try {
-            Date exp = getExpiration(token);
-            return exp != null && exp.before(new Date());
+            Claims claims = parser.parseClaimsJws(token).getBody();
+            Date exp = claims.getExpiration();
+            return exp == null || exp.before(Date.from(clock.instant()));
         } catch (ExpiredJwtException e) {
-            // 이미 만료됐으면 예외가 발생하므로 만료로 처리
             return true;
         } catch (JwtException | IllegalArgumentException e) {
-            // 파싱 불가(유효하지 않은 토큰) — 만료 여부를 알 수 없음
-            return false;
+            // 파싱 불가한 토큰은 만료 여부를 판정할 수 없으므로 만료로 처리 (안전하게)
+            return true;
         }
+    }
+
+    /**
+     * 토큰에서 Claims 반환 (만료된 토큰은 ExpiredJwtException 발생)
+     */
+    private Claims parseClaims(String token) throws JwtException {
+        if (token == null || token.isBlank()) {
+            throw new IllegalArgumentException("JWT token is null or blank");
+        }
+        return parser.parseClaimsJws(token).getBody();
     }
 
     /**
@@ -151,11 +200,18 @@ public class JwtProvider {
     }
 
     /**
-     * 토큰에서 role 추출
+     * 토큰에서 roles 추출 (List<String>)
      */
-    public String getRole(String token) {
+    @SuppressWarnings("unchecked")
+    public List<String> getRoles(String token) {
         Claims claims = parseClaims(token);
-        return claims.get("role", String.class);
+        Object v = claims.get(CLAIM_ROLES);
+        if (v == null) return Collections.emptyList();
+        if (v instanceof List) {
+            return (List<String>) v;
+        }
+        // 예외적 형식(단일 문자열) 처리
+        return List.of(String.valueOf(v));
     }
 
     /**
@@ -183,29 +239,14 @@ public class JwtProvider {
     }
 
     /**
-     * 토큰 파싱(Claims 반환). 만료된 토큰은 ExpiredJwtException 발생.
-     * 내부적으로 parseClaimsJws 사용.
-     */
-    private Claims parseClaims(String token) {
-        if (token == null || token.isBlank()) {
-            throw new IllegalArgumentException("JWT token is null or blank");
-        }
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-    }
-
-    /**
-     * Access 토큰 만료(ms) 반환 (서비스에서 응답에 사용)
+     * Access 토큰 만료(ms) 반환
      */
     public long getAccessExpireMs() {
         return accessExpireMs;
     }
 
     /**
-     * Refresh 토큰 만료(ms) 반환 (DB/Redis TTL 설정에 사용)
+     * Refresh 토큰 만료(ms) 반환
      */
     public long getRefreshExpireMs() {
         return refreshExpireMs;
