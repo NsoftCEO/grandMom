@@ -23,7 +23,7 @@ public class SecurityUserDetailsService implements UserDetailsService {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
-
+        System.out.println(user.toString());
         // 🔥 여기서 principal 생성
         return SecurityUserDetails.fromUser(user);
     }

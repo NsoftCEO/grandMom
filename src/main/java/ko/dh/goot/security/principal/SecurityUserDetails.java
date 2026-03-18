@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -28,21 +29,24 @@ public class SecurityUserDetails implements UserDetails {
     private final String name;     // nullable
     private final List<String> roles; // "ROLE_USER" 형태
     private final String status;   // nullable
-
-    private SecurityUserDetails(String userId, String email, String name, List<String> roles, String status) {
+    // DB에서 가져온(인코딩된) 패스워드. JWT 기반 principal은 null 가능.
+    private final String password;
+    
+    private SecurityUserDetails(String userId, String email, String name, List<String> roles, String status, String password) {
         this.userId = Objects.requireNonNull(userId, "userId required");
         this.email = email;
         this.name = name;
         this.roles = roles == null ? List.of() : List.copyOf(roles);
         this.status = status;
+        this.password = password;
     }
 
-    /** 필터에서 토큰 기반으로 경량 principal 생성 */
+    /** 필터에서 토큰 기반으로 경량 principal 생성 (비밀번호 없음) */
     public static SecurityUserDetails fromClaims(String userId, List<String> roles, String email, String name) {
-        return new SecurityUserDetails(userId, email, name, roles, null);
+        return new SecurityUserDetails(userId, email, name, roles, null, null);
     }
 
-    /** DB에서 User 엔티티를 조회한 뒤 principal 생성 */
+    /** DB에서 User 엔티티를 조회한 뒤 principal 생성 (로그인용) */
     public static SecurityUserDetails fromUser(User user) {
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND); // 404 처리
@@ -51,12 +55,14 @@ public class SecurityUserDetails implements UserDetails {
         // role이 null이면 빈 리스트, 아니면 enum 기반 ROLE 문자열
         List<String> roleStrings = List.of();
         if (user.getRole() != null) {
-            try {
-                UserRole userRole = UserRole.valueOf(user.getRole().name()); // DB에 ROLE_USER 형태 저장
-                roleStrings = List.of(userRole.name()); // ROLE_USER / ROLE_ADMIN
-            } catch (IllegalArgumentException e) {
-                throw new BusinessException(ErrorCode.USER_ROLE_INVALID, "Invalid role: " + user.getRole());
-            }
+            // User.role이 이미 enum이라면 단순 변환
+            roleStrings = List.of(user.getRole().name());
+        }
+
+        // DB에서 가져온 패스워드(인코딩된 값)
+        String encodedPassword = user.getPassword();
+        if (encodedPassword == null || encodedPassword.isBlank()) {
+            throw new BadCredentialsException("Empty encoded password for user: " + user.getUserId());
         }
 
         return new SecurityUserDetails(
@@ -64,7 +70,8 @@ public class SecurityUserDetails implements UserDetails {
                 user.getEmail(),
                 user.getName(),
                 roleStrings,
-                user.getStatus()
+                user.getStatus(),
+                encodedPassword
         );
     }
 
@@ -95,9 +102,10 @@ public class SecurityUserDetails implements UserDetails {
         return roles.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList());
     }
 
+	// 로그인(DAO) 흐름에서는 non-null 인코딩된 패스워드가 필요, JWT 기반 인증에서는 패스워드가 없음
     @Override
-    public String getPassword() {
-        return null; // JWT 기반 인증에서는 패스워드가 없음
+    public String getPassword() { 
+        return password;
     }
 
     @Override

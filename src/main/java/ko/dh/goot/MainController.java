@@ -10,7 +10,7 @@ public class MainController {
 
 	@GetMapping(value="/")
 	public String main() {
-		return "redirect:/view/html/main.html";
+		return "redirect:product/productList";
 	}
 }
 

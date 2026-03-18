@@ -5,6 +5,7 @@ async function login() {
     const errorEl = document.getElementById("error");
     errorEl.innerText = "";
 
+	alert(password);
     try {
         const response = await fetch("/api/auth/login", {
             method: "POST",

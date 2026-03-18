@@ -29,6 +29,7 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<Void> signup(@Valid @RequestBody SignupRequest request) {
         log.info("회원가입 요청: email={}", request.getEmail());
+        
         authService.signup(request);
         return ResponseEntity.ok().build();
     }
@@ -39,6 +40,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
         log.info("로그인 요청: email={}", request.getEmail());
+        log.info("로그인 요청: getPassword={}", request.getPassword());
         TokenResponse tokenResponse = authService.login(request);
         return ResponseEntity.ok(tokenResponse);
     }
