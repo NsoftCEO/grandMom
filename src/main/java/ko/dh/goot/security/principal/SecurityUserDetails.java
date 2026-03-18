@@ -2,7 +2,6 @@ package ko.dh.goot.security.principal;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -11,8 +10,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import ko.dh.goot.user.domain.User;
 
 public class SecurityUserDetails implements UserDetails {
-
-    private final User user;
+	private static final long serialVersionUID = 1L;
+	
+	private final User user;
 
     public SecurityUserDetails(User user) {
         this.user = user;
