@@ -1,4 +1,4 @@
-package ko.dh.goot.config;
+package ko.dh.goot.common.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
