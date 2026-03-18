@@ -10,6 +10,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import ko.dh.goot.auth.domain.UserRole;
 import ko.dh.goot.common.exception.BusinessException;
 import ko.dh.goot.common.exception.ErrorCode;
 import ko.dh.goot.user.domain.User;
@@ -43,9 +44,28 @@ public class SecurityUserDetails implements UserDetails {
 
     /** DB에서 User 엔티티를 조회한 뒤 principal 생성 */
     public static SecurityUserDetails fromUser(User user) {
-        if (user == null) new BusinessException(ErrorCode.USER_NOT_FOUND);
-        List<String> roleStrings = user.getRole() == null ? List.of() : List.of(user.getRole().toAuthority());
-        return new SecurityUserDetails(user.getUserId(), user.getEmail(), user.getName(), roleStrings, user.getStatus());
+        if (user == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND); // 404 처리
+        }
+
+        // role이 null이면 빈 리스트, 아니면 enum 기반 ROLE 문자열
+        List<String> roleStrings = List.of();
+        if (user.getRole() != null) {
+            try {
+                UserRole userRole = UserRole.valueOf(user.getRole().name()); // DB에 ROLE_USER 형태 저장
+                roleStrings = List.of(userRole.name()); // ROLE_USER / ROLE_ADMIN
+            } catch (IllegalArgumentException e) {
+                throw new BusinessException(ErrorCode.USER_ROLE_INVALID, "Invalid role: " + user.getRole());
+            }
+        }
+
+        return new SecurityUserDetails(
+                user.getUserId(),
+                user.getEmail(),
+                user.getName(),
+                roleStrings,
+                user.getStatus()
+        );
     }
 
     /** 안전한 읽기 전용 DTO */

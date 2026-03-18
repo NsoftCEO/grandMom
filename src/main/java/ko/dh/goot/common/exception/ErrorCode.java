@@ -18,7 +18,8 @@ public enum ErrorCode {
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "A002", "유효하지 않은 토큰입니다."),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "A003", "접근 권한이 없습니다."),
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "A004", "토큰이 만료되었습니다."),
-	
+    USER_ROLE_INVALID(HttpStatus.UNAUTHORIZED, "A005", "잘못된 권한입니다."),
+    
     // user
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U001", "사용자가 존재하지 않습니다."),
     

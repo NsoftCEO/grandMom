@@ -12,7 +12,6 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -23,7 +22,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import ko.dh.goot.auth.domain.Role;
+import ko.dh.goot.auth.domain.UserRole;
 
 
 @Component
@@ -87,11 +86,11 @@ public class JwtProvider {
     /**
      * Access Token 생성 (단일 role 버전)
      */
-    public String createAccessToken(String userId, Role role) {
+    public String createAccessToken(String userId, UserRole role) {
         return createAccessToken(userId, role, null);
     }
 
-    public String createAccessToken(String userId, Role role, Map<String, Object> extraClaims) {
+    public String createAccessToken(String userId, UserRole role, Map<String, Object> extraClaims) {
 
         Instant nowInstant = clock.instant();
         Date now = Date.from(nowInstant);
@@ -105,7 +104,6 @@ public class JwtProvider {
             b.setClaims(baseClaims);
         }
 
-        // 🔥 핵심: ROLE_ prefix 붙여서 저장
         List<String> rolesList = (role == null)
                 ? Collections.emptyList()
                 : List.of(role.toAuthority());

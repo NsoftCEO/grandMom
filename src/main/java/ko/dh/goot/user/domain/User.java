@@ -11,7 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import ko.dh.goot.auth.domain.Role;
+import ko.dh.goot.auth.domain.UserRole;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -41,7 +41,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role; // ROLE_USER, ROLE_ADMIN
+    private UserRole role; // ROLE_USER, ROLE_ADMIN
 
     @Column(length = 20, nullable = false)
     private String status; // ACTIVE, INACTIVE, WITHDRAWN
@@ -86,7 +86,7 @@ public class User {
 
     @Builder
     public User(String name, String email, String password, String phone,
-                Role role, String status, String loginType,
+                UserRole role, String status, String loginType,
                 String provider, String providerId) {
 
         if (name == null || name.isBlank()) throw new IllegalArgumentException("이름은 필수입니다.");
@@ -96,7 +96,7 @@ public class User {
         this.email = email;
         this.password = password;
         this.phone = phone;
-        this.role = role != null ? role : Role.USER;
+        this.role = role != null ? role : UserRole.ROLE_USER;
         this.status = status != null ? status : "ACTIVE";
         this.loginType = loginType != null ? loginType : "LOCAL";
         this.provider = provider;
@@ -146,7 +146,7 @@ public class User {
     /**
      * 권한 변경
      */
-    public void changeRole(Role newRole) {
+    public void changeRole(UserRole newRole) {
         this.role = newRole;
     }
 }

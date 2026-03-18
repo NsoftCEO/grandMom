@@ -17,17 +17,19 @@ async function login() {
             })
         });
 
-        if (!response.ok) {
-            const data = await response.json();
+		const data = await response.json();
+		
+		console.log("data::");
+		console.log(data);
+		
+		
+        if (!response.ok) {          
             errorEl.innerText = data.message || "로그인 실패";
             return;
         }
+		
+        localStorage.setItem("accessToken", data.accessToken);
 
-        // ✅ JWT 쓰면 여기서 저장
-        // const data = await response.json();
-        // localStorage.setItem("accessToken", data.accessToken);
-
-        // 성공 시 이동
         window.location.href = "/";
     } catch (e) {
         errorEl.innerText = "서버 오류";
