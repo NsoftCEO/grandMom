@@ -1,5 +1,6 @@
 const PORTONE_STORE_ID = document.body.dataset.storeId;
 const KAKAO_CHANNEL_KEY = document.body.dataset.kakaoKey;
+const token = localStorage.getItem('accessToken');
 
 // 💡 전역 상태
 let serverOrderId = null;
@@ -117,7 +118,10 @@ async function prepareOrder() {
 	try {
 		const res = await fetch('/order/prepareOrder', {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+			        'Content-Type': 'application/json',
+			        'Authorization': `Bearer ${token}`
+			},
 			body: JSON.stringify(orderData)
 		});
 

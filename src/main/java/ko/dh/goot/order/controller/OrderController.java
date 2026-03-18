@@ -1,11 +1,10 @@
 package ko.dh.goot.order.controller;
 
 
-import java.util.Map;
-
 import org.apache.ibatis.javassist.NotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +20,7 @@ import ko.dh.goot.order.dto.OrderResponse;
 import ko.dh.goot.order.service.OrderService;
 import ko.dh.goot.payment.dto.PaymentParamRequest;
 import ko.dh.goot.payment.dto.PaymentParamResponse;
+import ko.dh.goot.security.principal.SecurityUserDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 @Log4j2
@@ -55,9 +55,9 @@ public class OrderController {
     }
 
     @PostMapping("/prepareOrder")
-    public ResponseEntity<OrderResponse> prepareOrder(@Valid @RequestBody OrderRequest orderRequest) {
-        System.out.println("prepareOrder맵핑");
-    	String userId = "user-1234"; // 임시 사용자 ID
+    public ResponseEntity<OrderResponse> prepareOrder(@Valid @RequestBody OrderRequest orderRequest, @AuthenticationPrincipal SecurityUserDetails userDetails) {
+    
+    	String userId = userDetails.getUserId();
        
         OrderResponse response = orderService.prepareOrder(orderRequest, userId); // 💡 Service 호출: 금액 재계산, DB 저장, orderId 반환
 

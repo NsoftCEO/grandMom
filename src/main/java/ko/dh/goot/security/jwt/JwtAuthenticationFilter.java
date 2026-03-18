@@ -1,8 +1,8 @@
 package ko.dh.goot.security.jwt;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,62 +15,75 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import ko.dh.goot.common.exception.ErrorCode;
-import ko.dh.goot.security.principal.UserPrincipal;
+import ko.dh.goot.security.principal.SecurityUserDetails;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+/**
+ * JwtAuthenticationFilter
+ * - 토큰만 검증하고 경량 principal(SecurityUserDetails)을 생성하여 SecurityContext에 넣음
+ * - DB 조회는 하지 않음 (Service 레이어에서 필요시 수행)
+ */
+@Slf4j
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-	private final JwtProvider jwtProvider;
+    private final JwtProvider jwtProvider;
 
-	@Override
-	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-			throws ServletException, IOException {
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
-		try {
-			// JwtProvider의 resolveToken 사용
-			String token = jwtProvider.resolveToken(request.getHeader("Authorization"));
+        String rawAuth = request.getHeader("Authorization");
+        String token = jwtProvider.resolveToken(rawAuth);
 
-			if (token != null && !token.isBlank()) {
-				JwtProvider.TokenStatus status = jwtProvider.validateTokenStatus(token);
+        try {
+            if (token == null || token.isBlank()) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-				if (status == JwtProvider.TokenStatus.VALID) {
-					// 토큰이 유효한 경우에만 Claims에서 값 추출
-					String userId = jwtProvider.getUserId(token);
-					List<String> roles = jwtProvider.getRoles(token);
+            JwtProvider.TokenStatus status = jwtProvider.validateTokenStatus(token);
 
-					// 기존 UserPrincipal 생성자와의 호환성 유지: primary role 사용
-					String primaryRole = roles.isEmpty() ? "ROLE_USER" : roles.get(0);
-					UserPrincipal principal = new UserPrincipal(userId, primaryRole);
+            if (status == JwtProvider.TokenStatus.VALID) {
+                String userId = jwtProvider.getUserId(token);
+                List<String> roles = jwtProvider.getRoles(token);
 
-					// authorities 생성 (roles 전체 반영)
-					List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-					for (String r : roles) {
-						authorities.add(new SimpleGrantedAuthority(r));
-					}
+                // optional convenience claims (may be null)
+                String email = jwtProvider.getClaim(token, "email", String.class);
+                String name  = jwtProvider.getClaim(token, "name", String.class);
 
-					UsernamePasswordAuthenticationToken authentication =
-							new UsernamePasswordAuthenticationToken(principal, null, authorities);
+                // 경량 principal 생성 (DB 조회 없음)
+                SecurityUserDetails principal = SecurityUserDetails.fromClaims(userId, roles, email, name);
 
-					SecurityContextHolder.getContext().setAuthentication(authentication);
-				} else if (status == JwtProvider.TokenStatus.EXPIRED) {
-					request.setAttribute("authError", ErrorCode.TOKEN_EXPIRED);
-					throw new AuthenticationCredentialsNotFoundException("Token expired");
-				} else { // INVALID
-					request.setAttribute("authError", ErrorCode.INVALID_TOKEN);
-					throw new AuthenticationCredentialsNotFoundException("Invalid token");
-				}
-			}
+                var authorities = roles.stream()
+                        .map(SimpleGrantedAuthority::new)
+                        .collect(Collectors.toList());
 
-			filterChain.doFilter(request, response);
+                var authentication = new UsernamePasswordAuthenticationToken(principal, null, authorities);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
 
-		} catch (AuthenticationCredentialsNotFoundException e) {
-			// 이미 authError 속성 설정된 상태에서 예외를 던짐
-			throw e;
-		} catch (Exception e) {
-			// 파싱 도중의 예기치 않은 오류 처리: 토큰 무효로 간주
-			request.setAttribute("authError", ErrorCode.INVALID_TOKEN);
-			throw new AuthenticationCredentialsNotFoundException("Invalid token", e);
-		}
-	}
+                filterChain.doFilter(request, response);
+                return;
+
+            } else if (status == JwtProvider.TokenStatus.EXPIRED) {
+                request.setAttribute("authError", ErrorCode.TOKEN_EXPIRED);
+                SecurityContextHolder.clearContext();
+                throw new AuthenticationCredentialsNotFoundException("Token expired");
+            } else {
+                request.setAttribute("authError", ErrorCode.INVALID_TOKEN);
+                SecurityContextHolder.clearContext();
+                throw new AuthenticationCredentialsNotFoundException("Invalid token");
+            }
+
+        } catch (AuthenticationCredentialsNotFoundException ex) {
+            // AuthenticationEntryPoint will handle response (401)
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Unexpected JWT processing error", ex);
+            request.setAttribute("authError", ErrorCode.INVALID_TOKEN);
+            SecurityContextHolder.clearContext();
+            throw new AuthenticationCredentialsNotFoundException("Invalid token", ex);
+        }
+    }
 }

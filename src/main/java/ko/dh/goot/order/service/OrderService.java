@@ -22,6 +22,8 @@ import ko.dh.goot.payment.dto.PaymentParamResponse;
 import ko.dh.goot.product.dao.ProductOptionMapper;
 import ko.dh.goot.product.dao.ProductOptionRepository;
 import ko.dh.goot.product.domain.ProductOption;
+import ko.dh.goot.user.dao.UserRepository;
+import ko.dh.goot.user.domain.User;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -36,6 +38,7 @@ public class OrderService {
 	
 	private final OrderMapper orderMapper;
 	private final OrderRepository orderRepository ;
+	private final UserRepository userRepository ;
 	private final ProductOptionRepository productOptionRepository;	
 	
 	
@@ -64,6 +67,9 @@ public class OrderService {
 		    throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "주문 수량: " + orderRequest.getQuantity());
 		}
 
+		User user = userRepository.findById(userId)
+	            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+		
 	    ProductOption option = productOptionRepository.findById(orderRequest.getOptionId())
 	            .orElseThrow(() -> 
 	                    new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND));
@@ -71,7 +77,7 @@ public class OrderService {
 	    option.decreaseStock(orderRequest.getQuantity());
 
 	    Order order = Order.create(
-	            userId,
+	    		user.getUserId(),
 	            orderRequest.getOrderName(),
 	            orderRequest.getReceiver(),
 	            orderRequest.getPhone(),

@@ -97,9 +97,7 @@ public class JwtProvider {
         Date now = Date.from(nowInstant);
         Date exp = Date.from(nowInstant.plusMillis(accessExpireMs));
 
-        Map<String, Object> baseClaims = (extraClaims == null)
-                ? new HashMap<>()
-                : new HashMap<>(extraClaims);
+        Map<String, Object> baseClaims = (extraClaims == null) ? new HashMap<>() : new HashMap<>(extraClaims);
 
         JwtBuilder b = Jwts.builder();
 

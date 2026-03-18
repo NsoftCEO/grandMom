@@ -1,6 +1,5 @@
 package ko.dh.goot.security.service;
 
-import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -20,14 +19,12 @@ public class SecurityUserDetailsService implements UserDetailsService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String email) {
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new UsernameNotFoundException("user not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
 
-        if (!"ACTIVE".equals(user.getStatus())) {
-            throw new DisabledException("inactive user");
-        }
-
-        return new SecurityUserDetails(user);
+        // 🔥 여기서 principal 생성
+        return SecurityUserDetails.fromUser(user);
     }
 }
