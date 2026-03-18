@@ -139,10 +139,17 @@ public class AuthService {
         RefreshToken rt = refreshTokenMapper.findByToken(hashedToken)
                 .orElseThrow(() -> new RefreshTokenException("invalid refresh token"));
 
-        // 만료/폐기 체크 시 즉시 해당 유저의 모든 토큰 삭제 (RTR 및 보안 정책)
-        if (rt.getExpiredAt().isBefore(Instant.now()) || rt.isRevoked()) {
+        // 🚨 [보안 핵심] 이미 폐기된 토큰을 누군가 다시 사용하려고 함! (탈취 의심 상황)
+        if (rt.isRevoked()) {
+            // 이 유저의 모든 기기 토큰을 싹 다 지워서 공격자 차단
             refreshTokenMapper.deleteByUserId(rt.getUserId()); 
-            throw new RefreshTokenException("refresh token expired or revoked");
+            throw new RefreshTokenException("COMPROMISED_TOKEN_DETECTED");
+        }
+
+        // 만료 체크
+        if (rt.getExpiredAt().isBefore(Instant.now())) {
+            refreshTokenMapper.deleteByToken(hashedToken); // 만료된 것만 삭제
+            throw new RefreshTokenException("TOKEN_EXPIRED");
         }
 
         User user = userRepository.findById(rt.getUserId())

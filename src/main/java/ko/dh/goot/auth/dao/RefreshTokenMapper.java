@@ -16,4 +16,6 @@ public interface RefreshTokenMapper {
     void insertToken(RefreshToken refreshToken);
 
     void revokeToken(String token);
+
+	void deleteByToken(String hashedToken);
 }
