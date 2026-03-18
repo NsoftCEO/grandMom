@@ -12,6 +12,7 @@ public enum ErrorCode {
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "C001", "잘못된 입력값입니다."),
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "C002", "서버 내부 오류입니다."),
     ENTITY_NOT_FOUND(HttpStatus.NOT_FOUND, "C003", "서버 내부 오류입니다."),
+    RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "C003", "RESOURCE를 찾을수 없습니다."),
     
     // auth
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "A001", "인증이 필요합니다."),

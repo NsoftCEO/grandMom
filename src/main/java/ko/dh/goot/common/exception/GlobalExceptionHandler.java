@@ -133,7 +133,9 @@ public class GlobalExceptionHandler {
     }
     
     
+
     
+    // 정적리소스 에러
     @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoResource(
             Exception e,
@@ -147,14 +149,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(404)
-                .body(ErrorResponse.of(ErrorCode.ENTITY_NOT_FOUND, traceId));
+                .body(ErrorResponse.of(ErrorCode.RESOURCE_NOT_FOUND, traceId));
     }
-    
-    
-    
-    
-    
-    
-    
     
 }
