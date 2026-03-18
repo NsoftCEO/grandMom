@@ -13,6 +13,7 @@ import java.util.UUID;
 import javax.crypto.SecretKey;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 
 import io.jsonwebtoken.Claims;
@@ -125,6 +126,32 @@ public class JwtProvider {
      */
     public String createRefreshToken() {
         return UUID.randomUUID().toString();
+    }
+    
+    /**
+     * Refresh Token을 HttpOnly 쿠키로 생성
+     */
+    public ResponseCookie createRefreshTokenCookie(String refreshToken) {
+        return ResponseCookie.from("refreshToken", refreshToken)
+                .httpOnly(true)
+                .secure(true) // HTTPS 환경에서만 전송 (로컬 테스트 시 HTTP라면 잠시 false로 변경)
+                .path("/")    // 애플리케이션 전체 경로에서 쿠키 사용
+                .maxAge(refreshExpireMs / 1000) // 초 단위 설정
+                .sameSite("Strict") // CSRF 방어
+                .build();
+    }
+
+    /**
+     * 로그아웃 시 Refresh Token 쿠키 무효화 (삭제)
+     */
+    public ResponseCookie createEmptyRefreshTokenCookie() {
+        return ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0) // 수명을 0으로 주어 즉시 만료시킴
+                .sameSite("Strict")
+                .build();
     }
 
     /**

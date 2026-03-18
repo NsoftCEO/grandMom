@@ -52,14 +52,12 @@ public class SecurityUserDetails implements UserDetails {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND); // 404 처리
         }
 
-        // role이 null이면 빈 리스트, 아니면 enum 기반 ROLE 문자열
-        List<String> roleStrings = List.of();
-        if (user.getRole() != null) {
-            // User.role이 이미 enum이라면 단순 변환
-            roleStrings = List.of(user.getRole().name());
+        if (user.getRole() == null) {
+            throw new BusinessException(ErrorCode.USER_ROLE_INVALID, "User role is null: " + user.getUserId());
         }
 
-        // DB에서 가져온 패스워드(인코딩된 값)
+        List<String> roleStrings = List.of(user.getRole().name());
+
         String encodedPassword = user.getPassword();
         if (encodedPassword == null || encodedPassword.isBlank()) {
             throw new BadCredentialsException("Empty encoded password for user: " + user.getUserId());

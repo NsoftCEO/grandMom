@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import ko.dh.goot.auth.dao.RefreshTokenMapper;
 import ko.dh.goot.auth.dao.RefreshTokenRepository;
 import ko.dh.goot.auth.domain.RefreshToken;
 import ko.dh.goot.auth.domain.UserRole;
@@ -34,6 +35,7 @@ public class AuthService {
     private final JwtProvider jwtProvider;
     private final UserRepository userRepository;
     private final OAuthService oAuthService;
+    private final RefreshTokenMapper refreshTokenMapper;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenHasher tokenHasher;
@@ -172,12 +174,13 @@ public class AuthService {
         // 🔥 raw → hash 변환
         String hashedToken = tokenHasher.hash(refreshToken);
 
-        RefreshToken rt = refreshTokenRepository.findByToken(hashedToken)
+        // 🔥 MyBatis를 이용한 직접 조회
+        RefreshToken rt = refreshTokenMapper.findByToken(hashedToken)
                 .orElseThrow(() -> new BadCredentialsException("invalid refresh token"));
 
         // ✅ 만료 or 폐기 체크
         if (rt.getExpiredAt().isBefore(Instant.now()) || rt.isRevoked()) {
-            refreshTokenRepository.deleteByUserId(rt.getUserId()); // 🔥 통일
+            refreshTokenMapper.deleteByUserId(rt.getUserId()); // 🔥 MyBatis로 즉각 삭제
             throw new BadCredentialsException("refresh token expired or revoked");
         }
 
@@ -193,8 +196,6 @@ public class AuthService {
         String newAccess = jwtProvider.createAccessToken(user.getUserId(), user.getRole());
         String newRefresh = jwtProvider.createRefreshToken();
 
-        refreshTokenRepository.deleteByUserId(userId);
-
         saveRefreshToken(userId, newRefresh);
 
         return TokenResponse.of(
@@ -209,12 +210,12 @@ public class AuthService {
      */
     @Transactional
     public void logout(String refreshToken) {
-
+        if (refreshToken == null || refreshToken.isBlank()) return;
+        
         String hashedToken = tokenHasher.hash(refreshToken);
-
-        refreshTokenRepository.findByToken(hashedToken).ifPresent(rt -> {
-            rt.revoke();
-        });
+        
+        // 🔥 MyBatis를 통해 UPDATE 쿼리 즉시 실행
+        refreshTokenMapper.revokeToken(hashedToken);
     }
 
     /**
@@ -222,8 +223,8 @@ public class AuthService {
      */
     private void saveRefreshToken(String userId, String refreshToken) {
 
-        // 🔥 기존 토큰 제거 (벌크)
-        refreshTokenRepository.deleteByUserId(userId);
+        // 🔥 MyBatis: 기존 토큰 즉시 제거 (DELETE 쿼리 강제 실행)
+        refreshTokenMapper.deleteByUserId(userId);
 
         // 🔥 hash 적용
         String hashedToken = tokenHasher.hash(refreshToken);
@@ -235,7 +236,8 @@ public class AuthService {
                 .revoked(false)
                 .build();
 
-        refreshTokenRepository.save(rt);
+        // 🔥 MyBatis: 새로운 토큰 즉시 저장 (INSERT 쿼리 강제 실행)
+        refreshTokenMapper.insertToken(rt);
     }
 
     /**
