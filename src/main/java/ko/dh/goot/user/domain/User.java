@@ -1,13 +1,21 @@
 package ko.dh.goot.user.domain;
 
-import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import ko.dh.goot.auth.domain.Role;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "users")
@@ -31,8 +39,9 @@ public class User {
     @Column(length = 30)
     private String phone;
 
-    @Column(length = 20, nullable = false)
-    private String role; // ROLE_USER, ROLE_ADMIN
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role; // ROLE_USER, ROLE_ADMIN
 
     @Column(length = 20, nullable = false)
     private String status; // ACTIVE, INACTIVE, WITHDRAWN
@@ -77,7 +86,7 @@ public class User {
 
     @Builder
     public User(String name, String email, String password, String phone,
-                String role, String status, String loginType,
+                Role role, String status, String loginType,
                 String provider, String providerId) {
 
         if (name == null || name.isBlank()) throw new IllegalArgumentException("이름은 필수입니다.");
@@ -87,7 +96,7 @@ public class User {
         this.email = email;
         this.password = password;
         this.phone = phone;
-        this.role = role != null ? role : "ROLE_USER";
+        this.role = role != null ? role : Role.USER;
         this.status = status != null ? status : "ACTIVE";
         this.loginType = loginType != null ? loginType : "LOCAL";
         this.provider = provider;
@@ -137,7 +146,7 @@ public class User {
     /**
      * 권한 변경
      */
-    public void changeRole(String newRole) {
+    public void changeRole(Role newRole) {
         this.role = newRole;
     }
 }

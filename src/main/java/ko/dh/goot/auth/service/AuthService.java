@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import ko.dh.goot.auth.dao.RefreshTokenRepository;
 import ko.dh.goot.auth.domain.RefreshToken;
+import ko.dh.goot.auth.domain.Role;
 import ko.dh.goot.auth.dto.LoginRequest;
 import ko.dh.goot.auth.dto.SignupRequest;
 import ko.dh.goot.auth.dto.TokenResponse;
@@ -52,7 +53,7 @@ public class AuthService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .phone(request.getPhone())
-                .role("ROLE_USER")
+                .role(Role.USER)
                 .status("ACTIVE")
                 .loginType("LOCAL")
                 .provider(null)
@@ -155,7 +156,7 @@ public class AuthService {
                 .loginType("SOCIAL")
                 .provider(userInfo.getProvider())
                 .providerId(userInfo.getProviderId())
-                .role("ROLE_USER")
+                .role(Role.USER)
                 .status("ACTIVE")
                 .build();
 

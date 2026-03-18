@@ -23,6 +23,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import ko.dh.goot.auth.domain.Role;
 
 
 @Component
@@ -86,36 +87,35 @@ public class JwtProvider {
     /**
      * Access Token 생성 (단일 role 버전)
      */
-    public String createAccessToken(String userId, String role) {
+    public String createAccessToken(String userId, Role role) {
         return createAccessToken(userId, role, null);
     }
 
-    /**
-     * Access Token 생성 (추가 claims 제공 가능)
-     * - standard claims: sub(subject)=userId, iss, jti, iat, exp
-     * - roles: List<String> 형태로 저장
-     */
-    public String createAccessToken(String userId, String role, Map<String, Object> extraClaims) {
+    public String createAccessToken(String userId, Role role, Map<String, Object> extraClaims) {
+
         Instant nowInstant = clock.instant();
         Date now = Date.from(nowInstant);
         Date exp = Date.from(nowInstant.plusMillis(accessExpireMs));
 
-        // 안전하게 extraClaims 복사 (null-safe)
-        Map<String, Object> baseClaims = (extraClaims == null) ? new HashMap<>() : new HashMap<>(extraClaims);
-        // 다른 코드에서 덮어쓰지 않도록 표준 claim은 아래에서 별도 설정 (setSubject etc.)
+        Map<String, Object> baseClaims = (extraClaims == null)
+                ? new HashMap<>()
+                : new HashMap<>(extraClaims);
+
         JwtBuilder b = Jwts.builder();
 
         if (!baseClaims.isEmpty()) {
             b.setClaims(baseClaims);
         }
 
-        // roles: 리스트 형태로 저장 (확장성)
-        List<String> rolesList = (role == null) ? Collections.emptyList() : List.of(role);
+        // 🔥 핵심: ROLE_ prefix 붙여서 저장
+        List<String> rolesList = (role == null)
+                ? Collections.emptyList()
+                : List.of(role.toAuthority());
 
         return b
                 .setSubject(userId)
                 .setIssuer(issuer)
-                .setId(UUID.randomUUID().toString()) // jti
+                .setId(UUID.randomUUID().toString())
                 .setIssuedAt(now)
                 .setExpiration(exp)
                 .claim(CLAIM_ROLES, rolesList)

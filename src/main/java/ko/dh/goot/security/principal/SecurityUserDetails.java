@@ -24,8 +24,8 @@ public class SecurityUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // 엔티티의 Role 정보를 시큐리티 권한으로 변환
-        return Collections.singletonList(new SimpleGrantedAuthority(user.getRole()));
+
+        return Collections.singletonList(new SimpleGrantedAuthority(user.getRole().toAuthority()));
     }
 
     @Override
