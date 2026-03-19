@@ -162,7 +162,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(404)
-                .body(ErrorResponse.of(ErrorCode.ENTITY_NOT_FOUND, traceId));
+                .body(ErrorResponse.of(ErrorCode.RESOURCE_NOT_FOUND, traceId));
     }
     
     
