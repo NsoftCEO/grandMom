@@ -3,6 +3,7 @@ package ko.dh.goot.auth.service;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -14,9 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import ko.dh.goot.auth.dao.RefreshTokenMapper;
-import ko.dh.goot.auth.dao.RefreshTokenRepository;
 import ko.dh.goot.auth.domain.RefreshToken;
 import ko.dh.goot.auth.domain.UserRole;
+import ko.dh.goot.auth.dto.ClientMetadata;
 import ko.dh.goot.auth.dto.LoginRequest;
 import ko.dh.goot.auth.dto.SignupRequest;
 import ko.dh.goot.auth.dto.TokenResponse;
@@ -37,21 +38,16 @@ public class AuthService {
     private final UserRepository userRepository;
     private final OAuthService oAuthService;
     private final RefreshTokenMapper refreshTokenMapper;
-    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenHasher tokenHasher;
 
-    /**
-     * ✅ 회원가입 (LOCAL)
-     */
     @Transactional
     public void signup(SignupRequest request) {
-
         userRepository.findByEmail(request.getEmail()).ifPresent(u -> {
             throw new IllegalArgumentException("email already exists");
         });
 
-        User user = User.builder()                
+        User user = User.builder()
                 .name(request.getName() == null ? "no-name" : request.getName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
@@ -60,23 +56,16 @@ public class AuthService {
                 .status("ACTIVE")
                 .loginType("LOCAL")
                 .provider(null)
-                .providerId(null)               
+                .providerId(null)
                 .build();
 
         userRepository.save(user);
     }
 
-    /**
-     * ✅ 로컬 로그인
-     */
     @Transactional
-    public TokenResponse login(LoginRequest request) {
-
+    public TokenResponse login(LoginRequest request, ClientMetadata metadata) {
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
         String email = authentication.getName();
@@ -84,38 +73,110 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("user not found: " + email));
 
-        // ✅ 상태 체크
         if (!"ACTIVE".equals(user.getStatus())) {
             throw new BadCredentialsException("inactive user");
         }
 
-        // ✅ 마지막 로그인 갱신
         user.updateLastLogin();
+        ClientMetadata normalized = normalizeMetadata(metadata);
 
-        return issueTokens(user);
+        if (hasText(normalized.deviceId())) {
+            refreshTokenMapper.revokeByUserIdAndDeviceIdAndDeviceType(
+                    user.getUserId(),
+                    normalized.deviceId(),
+                    normalized.deviceType(),
+                    "RELOGIN_SAME_DEVICE"
+            );
+        }
+
+        String familyId = UUID.randomUUID().toString();
+        return issueTokens(user, familyId, normalized);
     }
 
-    /**
-     * ✅ 소셜 로그인
-     */
     @Transactional
-    public TokenResponse socialLogin(String provider, String accessTokenFromClient) {
+    public TokenResponse socialLogin(String provider, String accessTokenFromClient, ClientMetadata metadata) {
         OAuthUserInfo userInfo = oAuthService.getUserInfo(provider, accessTokenFromClient);
 
-        User user = userRepository.findByEmail(userInfo.getEmail())
+        Optional<User> optUser = (userInfo.getEmail() != null)
+                ? userRepository.findByEmail(userInfo.getEmail())
+                : Optional.empty();
+
+        User user = optUser
                 .or(() -> userRepository.findByProviderAndProviderId(userInfo.getProvider(), userInfo.getProviderId()))
                 .orElseGet(() -> register(userInfo));
 
-        if (!"ACTIVE".equals(user.getStatus())) throw new BadCredentialsException("inactive user");
+        if (!"ACTIVE".equals(user.getStatus())) {
+            throw new BadCredentialsException("inactive user");
+        }
 
         user.updateLastLogin();
-        return issueTokens(user); // 🔥 로직 공통화
+        ClientMetadata normalized = normalizeMetadata(metadata);
+
+        if (hasText(normalized.deviceId())) {
+            refreshTokenMapper.revokeByUserIdAndDeviceIdAndDeviceType(
+                    user.getUserId(),
+                    normalized.deviceId(),
+                    normalized.deviceType(),
+                    "RELOGIN_SAME_DEVICE"
+            );
+        }
+
+        String familyId = UUID.randomUUID().toString();
+        return issueTokens(user, familyId, normalized);
     }
 
-    /**
-     * ✅ 소셜 회원가입
-     */
+    @Transactional(noRollbackFor = RefreshTokenException.class)
+    public TokenResponse refreshToken(String refreshToken, ClientMetadata currentMetadata) {
+        ClientMetadata normalized = normalizeMetadata(currentMetadata);
+        String hashedToken = tokenHasher.hash(refreshToken);
+
+        RefreshToken rt = refreshTokenMapper.findByTokenHash(hashedToken)
+                .orElseThrow(() -> new RefreshTokenException("invalid refresh token"));
+
+        if (rt.isRevoked()) {
+            refreshTokenMapper.revokeFamily(rt.getTokenFamilyId(), "TOKEN_REUSE_DETECTED");
+            throw new RefreshTokenException("COMPROMISED_TOKEN_DETECTED");
+        }
+
+        if (rt.isExpired()) {
+            refreshTokenMapper.revokeFamily(rt.getTokenFamilyId(), "TOKEN_EXPIRED");
+            throw new RefreshTokenException("TOKEN_EXPIRED");
+        }
+
+        User user = userRepository.findById(rt.getUserId())
+                .orElseThrow(() -> new UsernameNotFoundException("user not found"));
+
+        if (!"ACTIVE".equals(user.getStatus())) {
+            throw new BadCredentialsException("inactive user");
+        }
+
+        // 💡 [핵심] 원자적 처리: 동시에 2번의 갱신 요청이 들어올 때의 Race Condition 방어
+        int updatedRows = refreshTokenMapper.revokeToken(hashedToken, "ROTATED");
+        if (updatedRows == 0) {
+            // WHERE revoked = false 조건에 의해 0건이 수정되었다면, 
+            // 찰나의 순간에 누군가 이미 이 토큰을 썼다는 뜻입니다.
+            refreshTokenMapper.revokeFamily(rt.getTokenFamilyId(), "CONCURRENT_REUSE_DETECTED");
+            throw new RefreshTokenException("COMPROMISED_TOKEN_DETECTED");
+        }
+
+        // 기존 기기 정보는 DB 값을 유지하고 접속 IP/UserAgent 등만 최신화
+        ClientMetadata merged = new ClientMetadata(
+                normalized.ipAddress(),
+                normalized.userAgent(),
+                rt.getDeviceId(),
+                rt.getDeviceType(),
+                rt.getDeviceName()
+        );
+
+        return issueTokens(user, rt.getTokenFamilyId(), merged);
+    }
+
     @Transactional
+    public void logout(String refreshToken) {
+        if (!hasText(refreshToken)) return;
+        refreshTokenMapper.revokeToken(tokenHasher.hash(refreshToken), "LOGOUT");
+    }
+
     protected User register(OAuthUserInfo userInfo) {
         User user = User.builder()
                 .email(userInfo.getEmail() != null ? userInfo.getEmail() : userInfo.getProvider() + "_" + userInfo.getProviderId())
@@ -126,76 +187,42 @@ public class AuthService {
                 .role(UserRole.ROLE_USER)
                 .status("ACTIVE")
                 .build();
+
         return userRepository.save(user);
     }
 
-    /**
-     * ✅ 토큰 재발급 (보안 강화)
-     */
-    @Transactional(noRollbackFor = {RefreshTokenException.class}) // 🔥 특정 예외 시 롤백 방지
-    public TokenResponse refreshToken(String refreshToken) {
-        String hashedToken = tokenHasher.hash(refreshToken);
+    private TokenResponse issueTokens(User user, String familyId, ClientMetadata metadata) {
+        String accessToken = jwtProvider.createAccessToken(user.getUserId(), user.getRole());
+        String refreshToken = jwtProvider.createRefreshToken();
 
-        RefreshToken rt = refreshTokenMapper.findByToken(hashedToken)
-                .orElseThrow(() -> new RefreshTokenException("invalid refresh token"));
+        saveRefreshToken(user.getUserId(), refreshToken, familyId, metadata);
 
-        // 🚨 [보안 핵심] 이미 폐기된 토큰을 누군가 다시 사용하려고 함! (탈취 의심 상황)
-        if (rt.isRevoked()) {
-            // 이 유저의 모든 기기 토큰을 싹 다 지워서 공격자 차단
-            refreshTokenMapper.deleteByUserId(rt.getUserId()); 
-            throw new RefreshTokenException("COMPROMISED_TOKEN_DETECTED");
-        }
-
-        // 만료 체크
-        if (rt.getExpiredAt().isBefore(Instant.now())) {
-            refreshTokenMapper.deleteByToken(hashedToken); // 만료된 것만 삭제
-            throw new RefreshTokenException("TOKEN_EXPIRED");
-        }
-
-        User user = userRepository.findById(rt.getUserId())
-                .orElseThrow(() -> new UsernameNotFoundException("user not found"));
-
-        if (!"ACTIVE".equals(user.getStatus())) throw new BadCredentialsException("inactive user");
-
-        return issueTokens(user);
+        return TokenResponse.of(accessToken, refreshToken, jwtProvider.getAccessExpireMs());
     }
 
-    /**
-     * ✅ 로그아웃 (RefreshToken 폐기)
-     */
-    @Transactional
-    public void logout(String refreshToken) {
-        if (refreshToken == null || refreshToken.isBlank()) return;
-        refreshTokenMapper.revokeToken(tokenHasher.hash(refreshToken));
-    }
-
-    /**
-     * ✅ RefreshToken 저장 (단일 토큰 정책)
-     */
-    private void saveRefreshToken(String userId, String refreshToken) {
-        refreshTokenMapper.deleteByUserId(userId); // 기존 토큰 삭제
-
+    private void saveRefreshToken(String userId, String refreshToken, String familyId, ClientMetadata metadata) {
         RefreshToken rt = RefreshToken.builder()
                 .userId(userId)
-                .token(tokenHasher.hash(refreshToken))
+                .tokenHash(tokenHasher.hash(refreshToken))
+                .tokenFamilyId(familyId)
                 .expiredAt(Instant.now().plusMillis(jwtProvider.getRefreshExpireMs()))
                 .revoked(false)
+                .deviceId(metadata.deviceId())
+                .deviceType(metadata.deviceType())
+                .deviceName(hasText(metadata.deviceName()) ? metadata.deviceName() : metadata.userAgent())
+                .userAgent(metadata.userAgent())
+                .ipAddress(metadata.ipAddress())
                 .build();
 
         refreshTokenMapper.insertToken(rt);
     }
 
-    /**
-     * ✅ 내 정보 조회
-     */
     public Object me(String accessToken) {
-
         if (!jwtProvider.validateToken(accessToken)) {
             throw new BadCredentialsException("invalid access token");
         }
 
         String userId = jwtProvider.getUserId(accessToken);
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("user not found: " + userId));
 
@@ -207,16 +234,26 @@ public class AuthService {
             put("role", user.getRole());
         }};
     }
-    
+
     /**
-     * [공통 로직] 신규 AT, RT 발급 및 저장
+     * 💡 헤더 누락 시의 Null 방어 및 기본값 세팅
      */
-    private TokenResponse issueTokens(User user) {
-        String accessToken = jwtProvider.createAccessToken(user.getUserId(), user.getRole());
-        String refreshToken = jwtProvider.createRefreshToken();
+    private ClientMetadata normalizeMetadata(ClientMetadata metadata) {
+        if (metadata == null) {
+            return new ClientMetadata(null, null, null, "WEB", null);
+        }
 
-        saveRefreshToken(user.getUserId(), refreshToken);
+        String deviceType = hasText(metadata.deviceType()) ? metadata.deviceType().trim().toUpperCase() : "WEB";
+        return new ClientMetadata(
+                metadata.ipAddress(),
+                metadata.userAgent(),
+                metadata.deviceId(),
+                deviceType,
+                metadata.deviceName()
+        );
+    }
 
-        return TokenResponse.of(accessToken, refreshToken, jwtProvider.getAccessExpireMs());
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }
