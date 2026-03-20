@@ -1,7 +1,7 @@
 package ko.dh.goot.auth.service;
 
 import java.time.Instant;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -226,13 +226,13 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("user not found: " + userId));
 
-        return new HashMap<String, Object>() {{
-            put("id", user.getUserId());
-            put("email", user.getEmail());
-            put("name", user.getName());
-            put("provider", user.getProvider());
-            put("role", user.getRole());
-        }};
+        return Map.of(
+        	    "id", user.getUserId(),
+        	    "email", user.getEmail(),
+        	    "name", user.getName(),
+        	    "provider", user.getProvider(),
+        	    "role", user.getRole()
+        	);
     }
 
     /**
