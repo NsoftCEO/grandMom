@@ -1,0 +1,16 @@
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        // 프론트에서 /api/something 으로 요청하면
+        source: "/api/:path*",
+        // 백엔드 8080 포트로 전달한다
+        destination: "http://localhost:8080/api/:path*",
+      },
+    ];
+  },
+};
+
+export default nextConfig;
