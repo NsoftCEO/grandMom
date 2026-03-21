@@ -57,6 +57,8 @@ public class SecurityConfig {
                 )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
+                		"/auth/signup/**",
+                		"/auth/login/**",
                 		"/api/auth/**",
                 		"/oauth2/**",
                 		"/payment/handlePaymentWebhook",
