@@ -1,0 +1,8 @@
+260322 TODO
+
+1. 프로젝트명 Camel case -> snake case로 변경
+- 나중에 배포할때 경로 문제될수 있음. grandMom -> grandmom
+
+2. Next.js 설치, next.config.ts 수정
+
+3. 컨트롤러 api로 수정하기
