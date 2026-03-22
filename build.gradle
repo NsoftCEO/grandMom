@@ -6,7 +6,7 @@ plugins {
 
 group = 'ko.dh'
 version = '0.0.1-SNAPSHOT'
-description = 'grandMom'
+description = 'grandmom'
 
 java {
 	toolchain {
