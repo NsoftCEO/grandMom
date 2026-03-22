@@ -8,18 +8,21 @@ import org.springframework.stereotype.Service;
 
 import ko.dh.goot.product.dao.ProductMapper;
 import ko.dh.goot.product.dto.ProductDetail;
-import ko.dh.goot.product.dto.ProductListItem;
+import ko.dh.goot.product.dto.ProductList;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 
+@Log4j2
 @Service
 @RequiredArgsConstructor
 public class ProductService {
 	
 	private final ProductMapper productMapper;
 
-	public List<ProductListItem> selectProductList(Map<String, Object> param) {
+	public List<ProductList> selectProductList(Map<String, Object> param) {
 
 		return productMapper.selectProductList(param);
+		
 	}
 
 	public ProductDetail selectProductDetail(long productId) throws NotFoundException {

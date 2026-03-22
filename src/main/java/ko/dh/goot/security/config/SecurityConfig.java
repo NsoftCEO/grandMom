@@ -63,7 +63,8 @@ public class SecurityConfig {
                 		"/oauth2/**",
                 		"/payment/handlePaymentWebhook",
                 		"/product/productList/**",
-                		"/product/detail/**"
+                		"/product/detail/**",
+                		"/**" // 개발용 임시허용
                 		).permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
