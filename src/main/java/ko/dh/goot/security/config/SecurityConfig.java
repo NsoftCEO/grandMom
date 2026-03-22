@@ -64,6 +64,14 @@ public class SecurityConfig {
                 		"/payment/handlePaymentWebhook",
                 		"/product/productList/**",
                 		"/product/detail/**",
+                		
+                		"/js/**",
+                        "/css/**",
+                        "/images/**",
+                        "/product/**",          
+                        "/favicon.ico",
+                        "/error",
+                        "/.well-known/**",
                 		"/**" // 개발용 임시허용
                 		).permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -77,18 +85,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return web -> web.ignoring().requestMatchers(
-            "/js/**",
-            "/css/**",
-            "/images/**",
-            "/product/**",          
-            "/favicon.ico",
-            "/error",
-            "/.well-known/**"
-        );
-    }
     
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
