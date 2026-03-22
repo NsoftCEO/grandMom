@@ -7,7 +7,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ProductListItem {
+public class ProductList {
 
     private Long productId;
     private String productName;
@@ -31,6 +31,10 @@ public class ProductListItem {
     public Integer getDiscountRate() {
         if (salePrice == null) return null;
         return (price - salePrice) * 100 / price;
+    }
+    
+    public String getMainImageUrl() {
+        return mainImageUrl != null ? "/product/" + mainImageUrl : null;
     }
 
 }

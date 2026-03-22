@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.util.StringUtils;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -13,6 +14,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 
 import ko.dh.goot.auth.dao.RefreshTokenMapper;
 import ko.dh.goot.auth.domain.RefreshToken;
@@ -80,7 +82,7 @@ public class AuthService {
         user.updateLastLogin();
         ClientMetadata normalized = normalizeMetadata(metadata);
 
-        if (hasText(normalized.deviceId())) {
+        if (StringUtils.hasText(normalized.deviceId())) {
             refreshTokenMapper.revokeByUserIdAndDeviceIdAndDeviceType(
                     user.getUserId(),
                     normalized.deviceId(),
@@ -112,7 +114,7 @@ public class AuthService {
         user.updateLastLogin();
         ClientMetadata normalized = normalizeMetadata(metadata);
 
-        if (hasText(normalized.deviceId())) {
+        if (StringUtils.hasText(normalized.deviceId())) {
             refreshTokenMapper.revokeByUserIdAndDeviceIdAndDeviceType(
                     user.getUserId(),
                     normalized.deviceId(),
@@ -173,7 +175,7 @@ public class AuthService {
 
     @Transactional
     public void logout(String refreshToken) {
-        if (!hasText(refreshToken)) return;
+        if (!StringUtils.hasText(refreshToken)) return;
         refreshTokenMapper.revokeToken(tokenHasher.hash(refreshToken), "LOGOUT");
     }
 
@@ -209,7 +211,7 @@ public class AuthService {
                 .revoked(false)
                 .deviceId(metadata.deviceId())
                 .deviceType(metadata.deviceType())
-                .deviceName(hasText(metadata.deviceName()) ? metadata.deviceName() : metadata.userAgent())
+                .deviceName(StringUtils.hasText(metadata.deviceName()) ? metadata.deviceName() : metadata.userAgent())
                 .userAgent(metadata.userAgent())
                 .ipAddress(metadata.ipAddress())
                 .build();
@@ -243,7 +245,7 @@ public class AuthService {
             return new ClientMetadata(null, null, null, "WEB", null);
         }
 
-        String deviceType = hasText(metadata.deviceType()) ? metadata.deviceType().trim().toUpperCase() : "WEB";
+        String deviceType = StringUtils.hasText(metadata.deviceType()) ? metadata.deviceType().trim().toUpperCase() : "WEB";
         return new ClientMetadata(
                 metadata.ipAddress(),
                 metadata.userAgent(),
@@ -253,7 +255,4 @@ public class AuthService {
         );
     }
 
-    private boolean hasText(String value) {
-        return value != null && !value.trim().isEmpty();
-    }
 }
