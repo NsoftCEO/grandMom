@@ -4,8 +4,10 @@ import lombok.Getter;
 
 @Getter
 public class WebhookException extends RuntimeException {
+
+	private static final long serialVersionUID = 1L;
 	
-    private final ErrorCode errorCode;
+	private final ErrorCode errorCode;
 
     public WebhookException(ErrorCode errorCode) {
         super(errorCode.getMessage());

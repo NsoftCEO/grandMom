@@ -6,9 +6,12 @@ import java.util.Map;
 import org.apache.ibatis.javassist.NotFoundException;
 import org.springframework.stereotype.Service;
 
+import ko.dh.goot.common.exception.BusinessException;
+import ko.dh.goot.common.exception.ErrorCode;
 import ko.dh.goot.product.dao.ProductMapper;
 import ko.dh.goot.product.dto.ProductDetail;
 import ko.dh.goot.product.dto.ProductList;
+import ko.dh.goot.product.persistence.ProductOptionRecord;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
@@ -29,10 +32,16 @@ public class ProductService {
 
 		ProductDetail product = productMapper.selectProductDetail(productId);
 	    if (product == null) {
-	        throw new NotFoundException("상품 없음");
+	    	throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND,"상품번호: " + productId);
 	    }
 
-	    product.setOptions(productMapper.selectProductOptions(productId));
+	    List<ProductOptionRecord> options = productMapper.selectProductOptions(productId);
+	    if (options == null || options.isEmpty()) {
+	        throw new BusinessException(ErrorCode.PRODUCT_OPTION_NOT_FOUND, 
+	            "옵션이 존재하지 않는 상품입니다. productId=" + productId);
+	    }
+
+	    product.setOptions(options);
 	    product.setImages(productMapper.selectProductImages(productId));
 
 	    return product;
