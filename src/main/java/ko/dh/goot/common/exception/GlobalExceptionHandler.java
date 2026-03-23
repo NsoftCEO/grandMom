@@ -136,17 +136,14 @@ public class GlobalExceptionHandler {
     }
     
     
-    @ExceptionHandler({
-        BadCredentialsException.class,
-        UsernameNotFoundException.class
-    })
-    public ResponseEntity<ErrorResponse> handleAuthException(Exception e) {
-
-        log.warn("Login failed: {}", e.getMessage());
+    @ExceptionHandler({ BadCredentialsException.class, UsernameNotFoundException.class })
+    public ResponseEntity<ErrorResponse> handleAuthException(Exception e, HttpServletRequest request) { // 파라미터 추가
+        String trace = traceId();
+        log.warn("[{}] Login failed: {}, msg={}", trace, requestInfo(request), e.getMessage());
 
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
-                .body(ErrorResponse.of(ErrorCode.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."));
+                .body(ErrorResponse.of(ErrorCode.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.", trace, request.getRequestURI()));
     }
     
     @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
